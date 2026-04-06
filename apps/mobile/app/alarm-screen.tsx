@@ -1,0 +1,233 @@
+import { useEffect, useRef, useState } from 'react';
+import {
+  View, Text, TouchableOpacity, StyleSheet, Animated, Dimensions,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { createAudioPlayer, setAudioModeAsync, AudioPlayer } from 'expo-audio';
+// AudioPlayer type used by module-level _alarmPlayer below
+import notifee from '@notifee/react-native';
+
+const { width } = Dimensions.get('window');
+
+// Module-level player — survives component unmount/remount and works across multiple instances.
+// If alarm-screen is somehow pushed twice, both share this reference so stopAllAlarmAudio()
+// always stops whichever player is currently active.
+let _alarmPlayer: AudioPlayer | null = null;
+
+async function stopAllAlarmAudio() {
+  if (_alarmPlayer) {
+    try {
+      _alarmPlayer.loop = false;
+      _alarmPlayer.pause();
+      _alarmPlayer.remove();
+    } catch { /* ignore */ }
+    _alarmPlayer = null;
+  }
+  setAudioModeAsync({ playsInSilentMode: false }).catch(() => {});
+}
+const AUTO_DISMISS_MS = 2 * 60 * 1000; // 2 minutes
+
+export default function AlarmScreen() {
+  console.log('AlarmScreen opened');
+  const router = useRouter();
+  const { title = 'Reminder', type = 'task' } = useLocalSearchParams<{ title?: string; type?: string }>();
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dismissedRef = useRef(false);
+
+  // ── Bell shake animation ──────────────────────────────────────
+  const shakeAnim  = useRef(new Animated.Value(0)).current;
+  const scaleAnim  = useRef(new Animated.Value(1)).current;
+  const pulseAnim  = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    // Shake: left-right ring
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(shakeAnim, { toValue: 1,  duration: 80,  useNativeDriver: true }),
+        Animated.timing(shakeAnim, { toValue: -1, duration: 80,  useNativeDriver: true }),
+        Animated.timing(shakeAnim, { toValue: 1,  duration: 80,  useNativeDriver: true }),
+        Animated.timing(shakeAnim, { toValue: -1, duration: 80,  useNativeDriver: true }),
+        Animated.timing(shakeAnim, { toValue: 0,  duration: 80,  useNativeDriver: true }),
+        Animated.delay(600),
+      ]),
+    ).start();
+
+    // Scale bounce
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(scaleAnim, { toValue: 1.15, duration: 300, useNativeDriver: true }),
+        Animated.timing(scaleAnim, { toValue: 1,    duration: 300, useNativeDriver: true }),
+        Animated.delay(600),
+      ]),
+    ).start();
+
+    // Outer pulse ring
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.6, duration: 900, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1,   duration: 900, useNativeDriver: true }),
+      ]),
+    ).start();
+  }, []);
+
+  // ── Sound ─────────────────────────────────────────────────────
+  useEffect(() => {
+    let mounted = true;
+
+    async function playSound() {
+      try {
+        await setAudioModeAsync({ playsInSilentMode: true });
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const player = createAudioPlayer(require('../assets/sounds/alarm.wav') as number);
+        if (!mounted || dismissedRef.current) { player.remove(); return; }
+        player.loop = true;
+        player.volume = 1.0;
+        player.play();
+        _alarmPlayer = player;
+      } catch {
+        // sound failed — alarm screen still shows
+      }
+    }
+
+    playSound();
+
+    // Auto-dismiss after 2 minutes
+    timerRef.current = setTimeout(() => { if (mounted) dismiss(); }, AUTO_DISMISS_MS);
+
+    return () => {
+      mounted = false;
+       stopAllAlarmAudio();
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  async function dismiss() {
+    if (dismissedRef.current) return; // prevent double-tap
+    dismissedRef.current = true;
+    if (timerRef.current) clearTimeout(timerRef.current);
+    await stopAllAlarmAudio();
+    await notifee.cancelDisplayedNotifications().catch(() => {});
+    //router.replace('/(tabs)/home');
+  }
+
+  const rotate = shakeAnim.interpolate({ inputRange: [-1, 1], outputRange: ['-18deg', '18deg'] });
+
+  const isEvent = type === 'event';
+  const accentColor = isEvent ? '#8B5CF6' : '#E11D48';
+  const iconName: React.ComponentProps<typeof Ionicons>['name'] = isEvent ? 'alarm' : 'alarm';
+
+  // Countdown display
+  const [remaining, setRemaining] = useState(AUTO_DISMISS_MS / 1000);
+  useEffect(() => {
+    const iv = setInterval(() => setRemaining((r) => Math.max(0, r - 1)), 1000);
+    return () => clearInterval(iv);
+  }, []);
+  const mins = Math.floor(remaining / 60);
+  const secs = String(remaining % 60).padStart(2, '0');
+
+  return (
+    <SafeAreaView style={[s.safe, { backgroundColor: isEvent ? '#1E1035' : '#1A0010' }]}>
+      {/* Pulse ring */}
+      <Animated.View style={[s.pulseRing, { borderColor: accentColor + '40', transform: [{ scale: pulseAnim }] }]} />
+      <Animated.View style={[s.pulseRing2, { borderColor: accentColor + '20', transform: [{ scale: pulseAnim }] }]} />
+
+      <View style={s.content}>
+        {/* Animated alarm icon */}
+        <Animated.View style={[s.iconWrap, { backgroundColor: accentColor + '20', transform: [{ rotate }, { scale: scaleAnim }] }]}>
+          <View style={[s.iconInner, { backgroundColor: accentColor }]}>
+            <Ionicons name={iconName} size={52} color="#fff" />
+          </View>
+        </Animated.View>
+
+        {/* Labels */}
+        <Text style={s.alarmLabel}>{isEvent ? 'Event Reminder' : 'Task Reminder'}</Text>
+        <Text style={s.titleText} numberOfLines={3}>{title}</Text>
+        <Text style={s.subText}>
+          {isEvent ? 'Your event is starting now' : 'Your task is due now'}
+        </Text>
+
+        {/* Countdown */}
+        <View style={s.countdownWrap}>
+          <Ionicons name="time-outline" size={16} color="#94A3B8" />
+          <Text style={s.countdown}>Auto-dismiss in {mins}:{secs}</Text>
+        </View>
+      </View>
+
+      {/* Dismiss button */}
+      <TouchableOpacity style={[s.dismissBtn, { backgroundColor: accentColor }]} onPress={dismiss} activeOpacity={0.85}>
+        <Ionicons name="close-circle-outline" size={22} color="#fff" />
+        <Text style={s.dismissText}>Dismiss Alarm</Text>
+      </TouchableOpacity>
+    </SafeAreaView>
+  );
+}
+
+const s = StyleSheet.create({
+  safe: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 48,
+  },
+  pulseRing: {
+    position: 'absolute',
+    width: 260, height: 260, borderRadius: 130,
+    borderWidth: 2,
+  },
+  pulseRing2: {
+    position: 'absolute',
+    width: 320, height: 320, borderRadius: 160,
+    borderWidth: 2,
+  },
+  content: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+    gap: 14,
+  },
+  iconWrap: {
+    width: 160, height: 160, borderRadius: 80,
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: 8,
+  },
+  iconInner: {
+    width: 110, height: 110, borderRadius: 55,
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4, shadowRadius: 16, elevation: 12,
+  },
+  alarmLabel: {
+    fontSize: 13, fontWeight: '700', color: '#94A3B8',
+    textTransform: 'uppercase', letterSpacing: 1.5,
+  },
+  titleText: {
+    fontSize: 26, fontWeight: '800', color: '#F8FAFC',
+    textAlign: 'center', lineHeight: 34,
+  },
+  subText: {
+    fontSize: 14, color: '#94A3B8', textAlign: 'center',
+  },
+  countdownWrap: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    marginTop: 8,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
+  },
+  countdown: { fontSize: 13, color: '#94A3B8', fontWeight: '600' },
+  dismissBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    marginHorizontal: 32,
+    width: width - 64,
+    paddingVertical: 18,
+    borderRadius: 20,
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3, shadowRadius: 8, elevation: 6,
+  },
+  dismissText: { fontSize: 17, fontWeight: '800', color: '#fff' },
+});

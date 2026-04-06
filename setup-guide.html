@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Project Setup Guide</title>
+  <style>
+
+html {
+color: #1a1a1a;
+background-color: #fdfdfd;
+}
+body {
+margin: 0 auto;
+max-width: 36em;
+padding-left: 50px;
+padding-right: 50px;
+padding-top: 50px;
+padding-bottom: 50px;
+hyphens: auto;
+overflow-wrap: break-word;
+text-rendering: optimizeLegibility;
+font-kerning: normal;
+}
+@media (max-width: 600px) {
+body {
+font-size: 0.9em;
+padding: 12px;
+}
+h1 {
+font-size: 1.8em;
+}
+}
+@media print {
+html {
+background-color: white;
+}
+body {
+background-color: transparent;
+color: black;
+font-size: 12pt;
+}
+p, h2, h3 {
+orphans: 3;
+widows: 3;
+}
+h2, h3, h4 {
+page-break-after: avoid;
+}
+}
+p {
+margin: 1em 0;
+}
+a {
+color: #1a1a1a;
+}
+a:visited {
+color: #1a1a1a;
+}
+img {
+max-width: 100%;
+}
+svg {
+height: auto;
+max-width: 100%;
+}
+h1, h2, h3, h4, h5, h6 {
+margin-top: 1.4em;
+}
+h5, h6 {
+font-size: 1em;
+font-style: italic;
+}
+h6 {
+font-weight: normal;
+}
+ol, ul {
+padding-left: 1.7em;
+margin-top: 1em;
+}
+li > ol, li > ul {
+margin-top: 0;
+}
+blockquote {
+margin: 1em 0 1em 1.7em;
+padding-left: 1em;
+border-left: 2px solid #e6e6e6;
+color: #606060;
+}
+code {
+font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+font-size: 85%;
+margin: 0;
+hyphens: manual;
+}
+pre {
+margin: 1em 0;
+overflow: auto;
+}
+pre code {
+padding: 0;
+overflow: visible;
+overflow-wrap: normal;
+}
+.sourceCode {
+background-color: transparent;
+overflow: visible;
+}
+hr {
+border: none;
+border-top: 1px solid #1a1a1a;
+height: 1px;
+margin: 1em 0;
+}
+table {
+margin: 1em 0;
+border-collapse: collapse;
+width: 100%;
+overflow-x: auto;
+display: block;
+font-variant-numeric: lining-nums tabular-nums;
+}
+table caption {
+margin-bottom: 0.75em;
+}
+tbody {
+margin-top: 0.5em;
+border-top: 1px solid #1a1a1a;
+border-bottom: 1px solid #1a1a1a;
+}
+th {
+border-top: 1px solid #1a1a1a;
+padding: 0.25em 0.5em 0.25em 0.5em;
+}
+td {
+padding: 0.125em 0.5em 0.25em 0.5em;
+}
+header {
+margin-bottom: 4em;
+text-align: center;
+}
+#TOC li {
+list-style: none;
+}
+#TOC ul {
+padding-left: 1.3em;
+}
+#TOC > ul {
+padding-left: 0;
+}
+#TOC a:not(:hover) {
+text-decoration: none;
+}
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ background-color: #f8f8f8; }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ef2929; } 
+code span.an { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.at { color: #204a87; } 
+code span.bn { color: #0000cf; } 
+code span.cf { color: #204a87; font-weight: bold; } 
+code span.ch { color: #4e9a06; } 
+code span.cn { color: #8f5902; } 
+code span.co { color: #8f5902; font-style: italic; } 
+code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.do { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.dt { color: #204a87; } 
+code span.dv { color: #0000cf; } 
+code span.er { color: #a40000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #0000cf; } 
+code span.fu { color: #204a87; font-weight: bold; } 
+code span.im { } 
+code span.in { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.kw { color: #204a87; font-weight: bold; } 
+code span.op { color: #ce5c00; font-weight: bold; } 
+code span.ot { color: #8f5902; } 
+code span.pp { color: #8f5902; font-style: italic; } 
+code span.sc { color: #ce5c00; font-weight: bold; } 
+code span.ss { color: #4e9a06; } 
+code span.st { color: #4e9a06; } 
+code span.va { color: #000000; } 
+code span.vs { color: #4e9a06; } 
+code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } 
+</style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Project Setup Guide</h1>
+</header>
+<h1 id="project-setup-guide">Project Setup Guide</h1>
+<h2 id="monorepo-docker-postgresql-pgadmin-expo-go">Monorepo · Docker ·
+PostgreSQL · pgAdmin · Expo Go</h2>
+<hr />
+<h2 id="part-1-install-prerequisites">PART 1 — Install
+Prerequisites</h2>
+<p><strong>Step 1 — Install Homebrew</strong> <em>(Mac package
+manager)</em></p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">/bin/bash</span> <span class="at">-c</span> <span class="st">&quot;</span><span class="va">$(</span><span class="ex">curl</span> <span class="at">-fsSL</span> https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh<span class="va">)</span><span class="st">&quot;</span></span></code></pre></div>
+<p><strong>Step 2 — Install Node.js 22</strong></p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">brew</span> install node@22</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">node</span> <span class="at">-v</span>    <span class="co"># should print v22.x.x</span></span></code></pre></div>
+<p><strong>Step 3 — Install pnpm</strong></p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">npm</span> install <span class="at">-g</span> pnpm</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">pnpm</span> <span class="at">-v</span>    <span class="co"># should print 9.x.x</span></span></code></pre></div>
+<p><strong>Step 4 — Install Docker Desktop</strong></p>
+<p>Download from <strong>docker.com</strong> → Install → Open Docker
+Desktop → Wait for <strong>“Engine running”</strong></p>
+<p><strong>Step 5 — Install Expo Go on your phone</strong> <em>(No Xcode
+/ Android Studio needed)</em></p>
+<ul>
+<li>iPhone → App Store → search <strong>Expo Go</strong> → install</li>
+<li>Android → Play Store → search <strong>Expo Go</strong> →
+install</li>
+</ul>
+<blockquote>
+<p>Expo Go runs the app directly on your real phone over Wi-Fi. No
+simulator required.</p>
+</blockquote>
+<hr />
+<h2 id="part-2-folder-structure">PART 2 — Folder Structure</h2>
+<pre><code>app project/
+├── apps/
+│   ├── mobile/        ← React Native (Expo) — the phone app
+│   └── api/           ← Node.js + Express — the backend server
+│       └── prisma/
+│           ├── schema.prisma        ← database table definitions
+│           └── migrations/          ← SQL files auto-generated by Prisma
+├── packages/
+│   └── types/         ← shared TypeScript types (used by both apps)
+├── docker/
+│   ├── docker-compose.yml   ← PostgreSQL + pgAdmin setup
+│   └── .env                 ← passwords &amp; secrets
+└── package.json</code></pre>
+<table>
+<thead>
+<tr>
+<th>Folder</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>apps/mobile</code></td>
+<td>Expo React Native app (screens, components, stores)</td>
+</tr>
+<tr>
+<td><code>apps/api</code></td>
+<td>Express REST API (routes, services, Prisma)</td>
+</tr>
+<tr>
+<td><code>packages/types</code></td>
+<td>Shared TypeScript interfaces used by both apps</td>
+</tr>
+<tr>
+<td><code>docker/</code></td>
+<td>Docker Compose config + environment variables</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="part-3-docker-file-whats-inside">PART 3 — Docker File (what’s
+inside)</h2>
+<p><code>docker/docker-compose.yml</code> runs two services —
+<strong>PostgreSQL</strong> (database) and <strong>pgAdmin</strong>
+(browser UI to view the database):</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">services</span><span class="kw">:</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co">  # PostgreSQL — the actual database</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">postgres</span><span class="kw">:</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">image</span><span class="kw">:</span><span class="at"> postgres:16-alpine</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">container_name</span><span class="kw">:</span><span class="at"> stickynotes-postgres</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">environment</span><span class="kw">:</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">POSTGRES_USER</span><span class="kw">:</span><span class="at"> postgres</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">POSTGRES_PASSWORD</span><span class="kw">:</span><span class="at"> postgres</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">POSTGRES_DB</span><span class="kw">:</span><span class="at"> stickynotes</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">ports</span><span class="kw">:</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> </span><span class="st">&quot;5432:5432&quot;</span><span class="co">         # Mac port : container port</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">volumes</span><span class="kw">:</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> postgres_data:/var/lib/postgresql/data</span><span class="co">   # data survives restarts</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a><span class="co">  # pgAdmin — browser UI to manage the database</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">pgadmin</span><span class="kw">:</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">image</span><span class="kw">:</span><span class="at"> dpage/pgadmin4:8</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">container_name</span><span class="kw">:</span><span class="at"> stickynotes-pgadmin</span></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">environment</span><span class="kw">:</span></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">PGADMIN_DEFAULT_EMAIL</span><span class="kw">:</span><span class="at"> admin@admin.com</span></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">PGADMIN_DEFAULT_PASSWORD</span><span class="kw">:</span><span class="at"> admin</span></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">ports</span><span class="kw">:</span></span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> </span><span class="st">&quot;5050:80&quot;</span><span class="co">           # open http://localhost:5050 in browser</span></span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">depends_on</span><span class="kw">:</span></span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> postgres</span></span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a><span class="fu">volumes</span><span class="kw">:</span></span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">postgres_data</span><span class="kw">:</span></span></code></pre></div>
+<p><strong>To open pgAdmin:</strong></p>
+<ol type="1">
+<li>Go to <code>http://localhost:5050</code></li>
+<li>Login: <code>admin@admin.com</code> / <code>admin</code></li>
+<li>Add Server → Host: <code>postgres</code> · Port: <code>5432</code> ·
+User: <code>postgres</code> · Password: <code>postgres</code></li>
+</ol>
+<hr />
+<h2 id="part-4-database-migrations-what-they-are">PART 4 — Database
+Migrations (what they are)</h2>
+<p>Migrations are <strong>auto-generated SQL files</strong> created by
+Prisma when you change <code>schema.prisma</code>.</p>
+<p><strong>You never write them manually.</strong> The flow is:</p>
+<pre><code>Edit schema.prisma  →  run command  →  Prisma generates migration.sql  →  applies to DB</code></pre>
+<p><strong>How to create a migration</strong> (when you add/change a
+table):</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pnpm</span> db:migrate</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Prisma asks for a name, e.g. &quot;add_note_images&quot;</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Creates: apps/api/prisma/migrations/20260318_add_note_images/migration.sql</span></span></code></pre></div>
+<p><strong>What a migration file looks like</strong> (example from this
+project):</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode sql"><code class="sourceCode sql"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- Creates the initial tables</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> <span class="ot">&quot;users&quot;</span> (</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="ot">&quot;id&quot;</span>        TEXT      <span class="kw">NOT</span> <span class="kw">NULL</span>,</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="ot">&quot;email&quot;</span>     TEXT      <span class="kw">NOT</span> <span class="kw">NULL</span>,</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="ot">&quot;password&quot;</span>  TEXT      <span class="kw">NOT</span> <span class="kw">NULL</span>,</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    <span class="ot">&quot;name&quot;</span>      TEXT,</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    <span class="ot">&quot;createdAt&quot;</span> <span class="dt">TIMESTAMP</span> <span class="kw">NOT</span> <span class="kw">NULL</span> <span class="kw">DEFAULT</span> <span class="fu">CURRENT_TIMESTAMP</span>,</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    <span class="ot">&quot;updatedAt&quot;</span> <span class="dt">TIMESTAMP</span> <span class="kw">NOT</span> <span class="kw">NULL</span>,</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">CONSTRAINT</span> <span class="ot">&quot;users_pkey&quot;</span> <span class="kw">PRIMARY</span> <span class="kw">KEY</span> (<span class="ot">&quot;id&quot;</span>)</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>);</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> <span class="ot">&quot;notes&quot;</span> (</span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>    <span class="ot">&quot;id&quot;</span>        TEXT      <span class="kw">NOT</span> <span class="kw">NULL</span>,</span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>    <span class="ot">&quot;title&quot;</span>     TEXT      <span class="kw">NOT</span> <span class="kw">NULL</span>,</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>    <span class="ot">&quot;content&quot;</span>   TEXT,</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>    <span class="ot">&quot;color&quot;</span>     TEXT      <span class="kw">NOT</span> <span class="kw">NULL</span> <span class="kw">DEFAULT</span> <span class="st">&#39;#FFFF88&#39;</span>,</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>    <span class="ot">&quot;userId&quot;</span>    TEXT      <span class="kw">NOT</span> <span class="kw">NULL</span>,</span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>    <span class="ot">&quot;createdAt&quot;</span> <span class="dt">TIMESTAMP</span> <span class="kw">NOT</span> <span class="kw">NULL</span> <span class="kw">DEFAULT</span> <span class="fu">CURRENT_TIMESTAMP</span>,</span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>    <span class="ot">&quot;updatedAt&quot;</span> <span class="dt">TIMESTAMP</span> <span class="kw">NOT</span> <span class="kw">NULL</span>,</span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>    <span class="kw">CONSTRAINT</span> <span class="ot">&quot;notes_pkey&quot;</span> <span class="kw">PRIMARY</span> <span class="kw">KEY</span> (<span class="ot">&quot;id&quot;</span>)</span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>);</span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a><span class="co">-- Prisma writes all of this automatically — you don&#39;t write SQL manually</span></span></code></pre></div>
+<p><strong>Migrations in this project so far:</strong></p>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th>#</th>
+<th>Migration Name</th>
+<th>Table Affected</th>
+<th>Columns Added / Changed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>init</code></td>
+<td><strong>users</strong> (new)</td>
+<td><code>id</code>, <code>email</code>, <code>password</code>,
+<code>name</code>, <code>createdAt</code>, <code>updatedAt</code></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td><strong>notes</strong> (new)</td>
+<td><code>id</code>, <code>title</code>, <code>content</code>,
+<code>color</code>, <code>userId</code>, <code>createdAt</code>,
+<code>updatedAt</code></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td><strong>todos</strong> (new)</td>
+<td><code>id</code>, <code>title</code>, <code>description</code>,
+<code>completed</code>, <code>userId</code>, <code>createdAt</code>,
+<code>updatedAt</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>add_password_reset_tokens</code></td>
+<td><strong>password_reset_tokens</strong> (new)</td>
+<td><code>id</code>, <code>userId</code>, <code>token</code>,
+<code>expiresAt</code>, <code>createdAt</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>add_refresh_tokens</code></td>
+<td><strong>refresh_tokens</strong> (new)</td>
+<td><code>id</code>, <code>userId</code>, <code>token</code>,
+<code>expiresAt</code>, <code>createdAt</code></td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>add_events</code></td>
+<td><strong>events</strong> (new)</td>
+<td><code>id</code>, <code>title</code>, <code>description</code>,
+<code>startDate</code>, <code>endDate</code>, <code>color</code>,
+<code>userId</code>, <code>createdAt</code>, <code>updatedAt</code></td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>add_todo_status</code></td>
+<td><strong>todos</strong> (altered)</td>
+<td><code>status</code> — enum: <code>TODO</code> |
+<code>IN_PROGRESS</code> | <code>COMPLETED</code></td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>add_note_category</code></td>
+<td><strong>notes</strong> (altered)</td>
+<td><code>category</code> — TEXT, default <code>&#39;General&#39;</code></td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>add_note_images</code></td>
+<td><strong>notes</strong> (altered)</td>
+<td><code>images</code> — JSONB, default <code>&#39;[]&#39;</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>All database tables in this project:</strong></p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Table</th>
+<th>Purpose</th>
+<th>Key Columns</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>users</code></td>
+<td>Registered accounts</td>
+<td><code>id</code>, <code>email</code>, <code>password</code>,
+<code>name</code></td>
+</tr>
+<tr>
+<td><code>notes</code></td>
+<td>User notes</td>
+<td><code>id</code>, <code>title</code>, <code>content</code>,
+<code>color</code>, <code>category</code>, <code>images</code>,
+<code>userId</code></td>
+</tr>
+<tr>
+<td><code>todos</code></td>
+<td>Tasks / to-dos</td>
+<td><code>id</code>, <code>title</code>, <code>description</code>,
+<code>completed</code>, <code>status</code>, <code>userId</code></td>
+</tr>
+<tr>
+<td><code>events</code></td>
+<td>Calendar events</td>
+<td><code>id</code>, <code>title</code>, <code>description</code>,
+<code>startDate</code>, <code>endDate</code>, <code>color</code>,
+<code>userId</code></td>
+</tr>
+<tr>
+<td><code>refresh_tokens</code></td>
+<td>JWT login sessions</td>
+<td><code>id</code>, <code>userId</code>, <code>token</code>,
+<code>expiresAt</code></td>
+</tr>
+<tr>
+<td><code>password_reset_tokens</code></td>
+<td>Forgot password OTP</td>
+<td><code>id</code>, <code>userId</code>, <code>token</code>,
+<code>expiresAt</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Prisma Schema</strong>
+(<code>apps/api/prisma/schema.prisma</code>) — this is what you edit,
+Prisma generates SQL from it:</p>
+<pre class="prisma"><code>model Note {
+  id        String   @id @default(cuid())
+  title     String
+  content   String?
+  color     String   @default(&quot;#FFFF88&quot;)
+  category  String?
+  images    Json     @default(&quot;[]&quot;)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}</code></pre>
+<hr />
+<h2 id="part-5-first-time-project-start">PART 5 — First-Time Project
+Start</h2>
+<div class="sourceCode" id="cb10"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Enter project folder</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> <span class="st">&quot;/Users/vishakha/Documents/vishakha/app project&quot;</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Install all dependencies</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="ex">pnpm</span> install</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. Copy env file</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="fu">cp</span> docker/.env.example docker/.env</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="co"># 4. Generate a JWT secret — copy the output</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a><span class="ex">openssl</span> rand <span class="at">-base64</span> 64</span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a><span class="co"># 5. Open docker/.env and paste the output as JWT_SECRET value</span></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a><span class="co"># 6. Start PostgreSQL + pgAdmin</span></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a><span class="ex">pnpm</span> docker:up</span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a><span class="co"># 7. Wait ~10 seconds, then run all migrations (creates all tables)</span></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a><span class="ex">pnpm</span> db:migrate</span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a><span class="co"># 8. Find your Mac&#39;s local IP (needed for Expo Go on phone)</span></span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a><span class="ex">ipconfig</span> getifaddr en0     <span class="co"># e.g. 192.168.1.10</span></span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a><span class="co"># 9. Start the mobile app</span></span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a><span class="ex">pnpm</span> dev:mobile</span>
+<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a><span class="co"># Scan the QR code with your phone camera → opens in Expo Go</span></span></code></pre></div>
+<hr />
+<h2 id="part-6-daily-use">PART 6 — Daily Use</h2>
+<div class="sourceCode" id="cb11"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Start everything</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="ex">pnpm</span> docker:up       <span class="co"># start PostgreSQL + pgAdmin</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="ex">pnpm</span> dev:mobile      <span class="co"># start Expo, scan QR with phone camera</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Stop everything</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="ex">pnpm</span> docker:down</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a><span class="co"># View API / database logs</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a><span class="ex">pnpm</span> docker:logs</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Reset database completely (wipes all data)</span></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a><span class="ex">pnpm</span> docker:reset</span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a><span class="ex">pnpm</span> db:migrate      <span class="co"># re-run all migrations after reset</span></span></code></pre></div>
+<hr />
+<h2 id="part-7-useful-urls-when-running">PART 7 — Useful URLs (when
+running)</h2>
+<table>
+<thead>
+<tr>
+<th>URL</th>
+<th>What it is</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>http://localhost:3000</code></td>
+<td>Backend API</td>
+</tr>
+<tr>
+<td><code>http://localhost:5050</code></td>
+<td>pgAdmin (database browser UI)</td>
+</tr>
+<tr>
+<td><code>http://localhost:8081</code></td>
+<td>Expo web (browser preview)</td>
+</tr>
+<tr>
+<td>Scan QR in terminal</td>
+<td>Open app in Expo Go on phone</td>
+</tr>
+</tbody>
+</table>
+</body>
+</html>

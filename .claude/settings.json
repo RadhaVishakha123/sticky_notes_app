@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wc -l \"/Users/vishakha/Documents/vishakha/app project/apps/mobile/app/\\(tabs\\)/home.tsx\")",
+      "Bash(pnpm --filter api prisma migrate dev --name add_todo_status)",
+      "Bash(pnpm --filter api prisma migrate dev --name add_note_category)",
+      "Bash(pandoc --version)",
+      "Bash(node -e \"require\\(''''puppeteer''''\\)\")",
+      "Bash(brew list:*)",
+      "Bash(pip3 list:*)",
+      "Bash(brew install:*)",
+      "Bash(pandoc --list-output-formats)",
+      "Bash(pandoc setup-guide.md --to=html5 --standalone --metadata title=\"Project Setup Guide\" --highlight-style=tango --css=\"\" -V \"margin-top=20mm\" -V \"margin-bottom=20mm\" -o setup-guide.html --embed-resources)",
+      "Read(//Users/vishakha/Documents/vishakha/app\\\\ project/apps/mobile/app/**)",
+      "Read(//Users/vishakha/Documents/vishakha/app\\\\ project/apps/mobile/app/\\(tabs\\)/**)",
+      "Read(//Users/vishakha/Documents/vishakha/app\\\\ project/apps/mobile/app/\\(auth\\)/**)",
+      "Bash(node -e \"const p=require\\(''./package.json''\\); console.log\\(p.dependencies[''expo-notifications''] || ''NOT INSTALLED''\\)\")",
+      "Read(//Users/vishakha/**)",
+      "Bash(source ~/.zshrc)",
+      "Bash(adb devices:*)",
+      "Bash(grep -E \"\\\\.\\(tsx?|jsx?\\)$\")",
+      "Read(//Applications/**)",
+      "Bash(docker --version)",
+      "Bash(grep -E \"\\\\.ts$\")",
+      "Bash(pnpm install:*)"
+    ]
+  }
+}

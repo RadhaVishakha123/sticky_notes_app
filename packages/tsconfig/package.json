@@ -1,0 +1,10 @@
+{
+  "name": "@repo/tsconfig",
+  "version": "1.0.0",
+  "description": "Shared TypeScript configs for the monorepo",
+  "files": [
+    "base.json",
+    "node.json",
+    "react-native.json"
+  ]
+}

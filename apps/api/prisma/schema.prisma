@@ -1,0 +1,187 @@
+// ─── Prisma Schema ────────────────────────────────────────────
+// Docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Models ──────────────────────────────────────────────────
+
+model User {
+  id            String               @id @default(cuid())
+  email         String               @unique
+  password      String
+  name          String?
+  notes         Note[]
+  todos         Todo[]
+  events        Event[]
+  expenses      Expense[]
+  budgets       Budget[]
+  resetTokens   PasswordResetToken[]
+  refreshTokens RefreshToken[]
+  deviceTokens     DeviceToken[]
+  expenseSettings  UserExpenseSettings?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  @@map("users")
+}
+
+model DeviceToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  platform  String?  // "ios" | "android"
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("device_tokens")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  title     String
+  content   String?
+  color     String   @default("#FFFF88")
+  category  String?  @default("General")
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("notes")
+}
+
+model Event {
+  id             String   @id @default(cuid())
+  title          String
+  description    String?
+  startDate      DateTime
+  endDate        DateTime
+  color          String   @default("#99CCFF")
+  category       String?  @default("General")
+  location       String?
+  reminderAt     DateTime?
+  reminderSentAt DateTime?
+  alarmAt        DateTime?
+  alarmSentAt    DateTime?
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([userId])
+  @@index([reminderAt])
+  @@index([alarmAt])
+  @@map("events")
+}
+
+model Expense {
+  id        String   @id @default(cuid())
+  title     String
+  amount    Float
+  category  String
+  date      String   // YYYY-MM-DD
+  noteId    String?  // null for manually added expenses
+  source    String   @default("manual") // "manual" | "note"
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("expenses")
+}
+
+model Budget {
+  id     String @id @default(cuid())
+  userId String
+  month  String // YYYY-MM
+  amount Float  @default(0)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, month])
+  @@index([userId])
+  @@map("budgets")
+}
+
+model UserExpenseSettings {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  summaryEnabled        Boolean  @default(false)
+  summaryTime           String   @default("20:00") // "HH:MM" UTC
+  budget80AlertEnabled  Boolean  @default(true)
+  budget100AlertEnabled Boolean  @default(true)
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_expense_settings")
+}
+
+enum TodoStatus {
+  TODO
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum TodoPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model Todo {
+  id             String       @id @default(cuid())
+  title          String
+  description    String?
+  completed      Boolean      @default(false)
+  status         TodoStatus   @default(TODO)
+  priority       TodoPriority @default(MEDIUM)
+  dueDate        DateTime?
+  dueTime        String?
+  reminderAt     DateTime?
+  reminderSentAt DateTime?
+  alarmAt        DateTime?
+  alarmSentAt    DateTime?
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([userId])
+  @@index([reminderAt])
+  @@index([alarmAt])
+  @@map("todos")
+}
