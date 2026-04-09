@@ -10,6 +10,7 @@ import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '../store/authStore';
 import { useIsDark, useThemeHydrated } from '../store/themeStore';
+import { useNotificationsStore } from '../store/notificationsStore';
 import { requestNotificationPermission, requestAlarmPermission } from '../utils/notifications';
 import notifee from '@notifee/react-native';
 import { scheduleLocalAlarm, cancelLocalAlarm, registerNotifeeHandler, registerOverlayModalTrigger, checkAllAlarmPermissions } from '../utils/alarmManager';
@@ -32,6 +33,7 @@ Notifications.setNotificationHandler({
 
 export default function RootLayout() {
   const { loadToken, isAuthenticated, isInitialized } = useAuthStore();
+  const { setNotificationsEnabled, setAlarmsEnabled } = useNotificationsStore();
   const isDark = useIsDark();
   const themeHydrated = useThemeHydrated();
   const router = useRouter();
@@ -41,12 +43,16 @@ export default function RootLayout() {
   // redirect (which fires in the same tick via setTimeout(0)) doesn't overwrite it.
   const alarmNavigatingRef = useRef(false);
   // Alarm triggered while app was killed/background — held until navigation is ready
-  const [pendingAlarm, setPendingAlarm] = useState<{ title: string; type: string } | null>(null);
+  const [pendingAlarm, setPendingAlarm] = useState<{ title: string; type: string; fromBackground: boolean; alarmId: string } | null>(null);
   const [showOverlayModal, setShowOverlayModal] = useState(false);
+  const overlayDismissRef = useRef<(() => void) | null>(null);
 
-  // Register the modal trigger so alarmManager.ts can open it without React hooks
+  // Register the modal trigger so alarmManager.ts can open it and await user action
   useEffect(() => {
-    registerOverlayModalTrigger(() => setShowOverlayModal(true));
+    registerOverlayModalTrigger((onDismissed) => {
+      overlayDismissRef.current = onDismissed;
+      setShowOverlayModal(true);
+    });
   }, []);
 
   const [fontsLoaded] = useFonts({
@@ -71,7 +77,8 @@ export default function RootLayout() {
           const parsed = new URL(url);
           const title = parsed.searchParams.get('title') ?? '';
           const type = parsed.searchParams.get('type') ?? 'task';
-          if (title) setPendingAlarm({ title, type });
+          const alarmId = parsed.searchParams.get('alarmId') ?? '';
+          if (title) setPendingAlarm({ title, type, fromBackground: true, alarmId });
         } catch {// ignore
           }
       }
@@ -79,9 +86,9 @@ export default function RootLayout() {
 
     // Path 2: notifee notification press (user tapped fullscreen notification)
     notifee.getInitialNotification().then((initial) => {
-      const data = initial?.notification?.data as { alarmTitle?: string; alarmType?: string } | undefined;
+      const data = initial?.notification?.data as { alarmTitle?: string; alarmType?: string; alarmId?: string } | undefined;
       if (data?.alarmTitle) {
-        setPendingAlarm({ title: data.alarmTitle, type: data.alarmType ?? 'task' });
+        setPendingAlarm({ title: data.alarmTitle, type: data.alarmType ?? 'task', fromBackground: true, alarmId: data.alarmId ?? '' });
       }
     });
 
@@ -90,8 +97,8 @@ export default function RootLayout() {
     AsyncStorage.getItem('pendingAlarm').then(async (stored) => {
       if (stored) {
         await AsyncStorage.removeItem('pendingAlarm');
-        const alarm = JSON.parse(stored) as { title: string; type: string };
-        setPendingAlarm(alarm);
+        const alarm = JSON.parse(stored) as { title: string; type: string; alarmId?: string };
+        setPendingAlarm({ ...alarm, fromBackground: true, alarmId: alarm.alarmId ?? '' });
       }
     });
 
@@ -101,8 +108,8 @@ export default function RootLayout() {
       AsyncStorage.getItem('pendingAlarm').then(async (stored) => {
         if (stored) {
           await AsyncStorage.removeItem('pendingAlarm');
-          const alarm = JSON.parse(stored) as { title: string; type: string };
-          setPendingAlarm(alarm);
+          const alarm = JSON.parse(stored) as { title: string; type: string; alarmId?: string };
+          setPendingAlarm({ ...alarm, fromBackground: true, alarmId: alarm.alarmId ?? '' });
         }
       });
     }, 1000);
@@ -116,7 +123,7 @@ export default function RootLayout() {
     // instance plays its own sound, and dismissing only the top one leaves the others playing.
     if (alarmNavigatingRef.current) { setPendingAlarm(null); return; }
     alarmNavigatingRef.current = true;
-    router.push({ pathname: '/alarm-screen', params: pendingAlarm });
+    router.push({ pathname: '/alarm-screen', params: { title: pendingAlarm.title, type: pendingAlarm.type, fromBackground: String(pendingAlarm.fromBackground), alarmId: pendingAlarm.alarmId } });
     setPendingAlarm(null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingAlarm, isInitialized, fontsLoaded, themeHydrated]);
@@ -127,31 +134,57 @@ export default function RootLayout() {
     if (!isInitialized || !isAuthenticated) return;
 
     requestNotificationPermission().then(async (granted) => {
-      if (granted) {
-        requestAlarmPermission();
-        // Android 14+ requires USE_FULL_SCREEN_INTENT to be explicitly granted.
-        // Open the app's notification settings once so the user can enable
-        // "Full screen intents" — required for alarm auto-open without tap.
-        if (Platform.OS === 'android') {
-          checkAllAlarmPermissions();
+      setNotificationsEnabled(granted);
+      if (!granted) {
+        setAlarmsEnabled(false);
+        return;
+      }
+      requestAlarmPermission();
+      // Android 14+ requires USE_FULL_SCREEN_INTENT to be explicitly granted.
+      // Open the app's notification settings once so the user can enable
+      // "Full screen intents" — required for alarm auto-open without tap.
+      if (Platform.OS === 'android') {
+        checkAllAlarmPermissions();
+      }
+      try {
+        const result = await Notifications.getDevicePushTokenAsync();
+        const token = typeof result.data === 'string' ? result.data : null;
+        if (token) {
+          const platform = Platform.OS === 'ios' ? 'ios' : Platform.OS === 'android' ? 'android' : 'web';
+          await AsyncStorage.setItem('fcm-device-token', token);
+          await pushApi.registerToken(token, platform);
         }
-        try {
-          const result = await Notifications.getDevicePushTokenAsync();
-          const token = typeof result.data === 'string' ? result.data : null;
-          if (token) {
-            const platform = Platform.OS === 'ios' ? 'ios' : Platform.OS === 'android' ? 'android' : 'web';
-            await AsyncStorage.setItem('fcm-device-token', token);
-            await pushApi.registerToken(token, platform);
-          }
-        } catch (err) {
-          console.error('[FCM] token registration failed:', err);
-        }
+      } catch (err) {
+        console.error('[FCM] token registration failed:', err);
       }
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isInitialized, isAuthenticated]);
 
-  // Keep ref in sync so the setTimeout callback below reads the latest pathname.
-  useEffect(() => { pathnameRef.current = pathname; }, [pathname]);
+  // Re-sync notification permission whenever app returns to foreground.
+  // Handles the case where user enables/disables permission in device Settings.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', async (nextState) => {
+      if (nextState !== 'active') return;
+      try {
+        const { status } = await Notifications.getPermissionsAsync();
+        const granted = status === 'granted';
+        setNotificationsEnabled(granted);
+        if (!granted) setAlarmsEnabled(false);
+      } catch { /* ignore */ }
+    });
+    return () => sub.remove();
+  // Zustand setters are stable references — safe to omit from deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Keep ref in sync + reset alarm guard when leaving alarm screen (so next alarm can open).
+  useEffect(() => {
+    pathnameRef.current = pathname;
+    if (!pathname.startsWith('/alarm-screen')) {
+      alarmNavigatingRef.current = false;
+    }
+  }, [pathname]);
 
   // Redirect based on auth state once token loading is complete.
   // Skip if already on alarm-screen — deep link from AlarmMessagingService already routed there.
@@ -175,8 +208,10 @@ export default function RootLayout() {
 
   // Notification event handlers
   useEffect(() => {
-    const openAlarm = (title: string, type: string) => {
-      router.push({ pathname: '/alarm-screen', params: { title, type } });
+    const openAlarm = (title: string, type: string, fromBackground: boolean, alarmId = '') => {
+      if (alarmNavigatingRef.current) return;
+      alarmNavigatingRef.current = true;
+      router.push({ pathname: '/alarm-screen', params: { title, type, fromBackground: String(fromBackground), alarmId } });
     };
 
     // Deep link listener — catches stickynotes://alarm-screen?... when app is BACKGROUNDED.
@@ -188,9 +223,8 @@ export default function RootLayout() {
           const parsed = new URL(url);
           const title = parsed.searchParams.get('title') ?? '';
           const type = parsed.searchParams.get('type') ?? 'task';
-          if (title) {
-            router.push({ pathname: '/alarm-screen', params: { title, type } });
-          }
+          const alarmId = parsed.searchParams.get('alarmId') ?? '';
+          if (title) openAlarm(title, type, true, alarmId);
         } catch { /* ignore malformed URLs */ }
       }
     });
@@ -208,8 +242,8 @@ export default function RootLayout() {
       }
       if (stored) {
         await AsyncStorage.removeItem('pendingAlarm');
-        const alarm = JSON.parse(stored) as { title: string; type: string };
-        openAlarm(alarm.title, alarm.type);
+        const alarm = JSON.parse(stored) as { title: string; type: string; alarmId?: string };
+        openAlarm(alarm.title, alarm.type, true, alarm.alarmId ?? '');
       }
     });
 
@@ -252,7 +286,7 @@ export default function RootLayout() {
       } else if (data.alarmTitle && Platform.OS !== 'android') {
         // Android: notifee EventType.DELIVERED (registerNotifeeHandler) handles this.
         // Doing it here too would push alarm-screen twice.
-        openAlarm(data.alarmTitle, data.alarmType ?? 'task');
+        openAlarm(data.alarmTitle, data.alarmType ?? 'task', true, data.alarmId ?? '');
       }
     });
 
@@ -271,13 +305,13 @@ export default function RootLayout() {
       } else if (data.type === 'event_reminder' && data.eventId) {
         router.push(`/event-editor?id=${data.eventId}`);
       } else if (data.alarmTitle) {
-        openAlarm(data.alarmTitle, data.alarmType ?? 'task');
+        openAlarm(data.alarmTitle, data.alarmType ?? 'task', true, (data as { alarmId?: string }).alarmId ?? '');
       }
     });
 
     // Notifee foreground handler — fires when local alarm triggers while app is open
-    
-    const notifeeUnsub = registerNotifeeHandler(openAlarm);
+    // fromBackground=false: alarm fired while user was already in the app
+    const notifeeUnsub = registerNotifeeHandler((title, type, alarmId) => openAlarm(title, type, false, alarmId));
 
     return () => {
       linkingSub.remove();
@@ -301,7 +335,11 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <ThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
-      <OverlayPermissionModal visible={showOverlayModal} onDismiss={() => setShowOverlayModal(false)} />
+      <OverlayPermissionModal visible={showOverlayModal} onDismiss={() => {
+        setShowOverlayModal(false);
+        overlayDismissRef.current?.();
+        overlayDismissRef.current = null;
+      }} />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(tabs)" />

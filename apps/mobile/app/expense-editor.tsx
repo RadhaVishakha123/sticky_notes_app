@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, Platform, KeyboardAvoidingView,
+  ScrollView, Platform, KeyboardAvoidingView, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -60,6 +60,7 @@ export default function ExpenseEditorScreen() {
     return new Date();
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const effectiveCategory = category === 'Other' && customCategory.trim()
     ? customCategory.trim()
@@ -73,6 +74,7 @@ export default function ExpenseEditorScreen() {
   );
 
   const handleSave = async () => {
+    if (saving) return;
     if (!title.trim()) {
       showAlert({ type: 'error', title: 'Title Required', message: 'Please enter a title for this expense.' });
       return;
@@ -86,6 +88,7 @@ export default function ExpenseEditorScreen() {
       showAlert({ type: 'error', title: 'Category Required', message: 'Please enter a custom category name.' });
       return;
     }
+    setSaving(true);
     try {
       if (existing) {
         await updateExpense(existing.id, { title: title.trim(), amount: amt, category: effectiveCategory, date: dateToStr(date) });
@@ -95,6 +98,8 @@ export default function ExpenseEditorScreen() {
       router.back();
     } catch {
       showAlert({ type: 'error', title: 'Save Failed', message: 'Could not save the expense. Please try again.' });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -109,10 +114,13 @@ export default function ExpenseEditorScreen() {
           <Text style={[s.headerTitle, { color: c.text }]}>{isNew ? 'New Expense' : 'Edit Expense'}</Text>
           <TouchableOpacity
             onPress={handleSave}
-            disabled={!isDirty}
-            style={[s.saveBtn, { backgroundColor: COLORS.primary }, !isDirty && { opacity: 0.4 }]}
+            disabled={!isDirty || saving}
+            style={[s.saveBtn, { backgroundColor: COLORS.primary }, (!isDirty || saving) && { opacity: 0.4 }]}
           >
-            <Text style={s.saveBtnText}>{isNew ? 'Save' : 'Update'}</Text>
+            {saving
+              ? <ActivityIndicator size="small" color="#fff" />
+              : <Text style={s.saveBtnText}>{isNew ? 'Save' : 'Update'}</Text>
+            }
           </TouchableOpacity>
         </View>
 

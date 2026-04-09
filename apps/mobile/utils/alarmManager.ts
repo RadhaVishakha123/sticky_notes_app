@@ -47,19 +47,36 @@ async function ensureAlarmChannel(): Promise<void> {
 export async function checkAlarmSystemPermissions(): Promise<void> {
   if (Platform.OS !== 'android') return;
   try {
-    const batterySettings = await notifee.getPowerManagerInfo();
-    if (batterySettings.activity) {
-      Alert.alert(
-        'Disable Battery Optimization',
-        'For alarms to ring on time, disable battery optimization for Sticky Notes.',
-        [
-          { text: 'Later', style: 'cancel' },
-          { text: 'Open Settings', onPress: () => notifee.openPowerManagerSettings() },
-        ],
-      );
+    // 1. Standard Android battery optimization — one-tap system dialog (no settings page needed).
+    //    requestIgnoreBatteryOptimizations() resolves false if already granted (skip the wait).
+    const dialogShown: boolean = await NativeModules.OverlayPermission.requestIgnoreBatteryOptimizations();
+    if (dialogShown) {
+      // Give the user a moment to respond to the system dialog before the next check.
+      await new Promise<void>((r) => setTimeout(r, 1500));
+    }
+
+    // 2. OEM battery manager (Samsung, Xiaomi, Huawei, etc.) — cannot be auto-granted.
+    //    Only show if battery optimization is STILL active — if the user already whitelisted
+    //    the app (via the dialog above or manually), isBatteryOptimizationEnabled() returns
+    //    false and we skip this alert so it never shows again.
+    const stillOptimized = await notifee.isBatteryOptimizationEnabled();
+    if (stillOptimized) {
+      const powerInfo = await notifee.getPowerManagerInfo();
+      if (powerInfo.activity) {
+        await new Promise<void>((resolve) => {
+          Alert.alert(
+            'Allow App to Run in Background',
+            'Your device may delay or block alarms.\n\nAfter tapping "Open Settings":\n1. Find "Sticky Notes" in the list\n2. Tap it\n3. Select "Unrestricted" or "Don\'t optimize"\n\nThis ensures your alarms fire on time.',
+            [
+              { text: 'Later', style: 'cancel', onPress: () => resolve() },
+              { text: 'Open Settings', onPress: () => { notifee.openPowerManagerSettings(); resolve(); } },
+            ],
+          );
+        });
+      }
     }
   } catch {
-    // Non-critical — ignore if notifee APIs unavailable
+    // Non-critical — ignore if APIs unavailable
   }
 }
 
@@ -92,7 +109,7 @@ export async function scheduleLocalAlarm(
           },
           pressAction: { id: 'default', launchActivity: 'default' },
         },
-        data: { alarmTitle: title, alarmType: type },
+        data: { alarmTitle: title, alarmType: type, alarmId: id },
       },
       {
         type: TriggerType.TIMESTAMP,
@@ -102,6 +119,8 @@ export async function scheduleLocalAlarm(
         },
       }
     );
+    const alarms = await notifee.getTriggerNotifications();
+    console.log('New alarms from the alarm manager:', alarms.length);
     console.log('[AlarmManager] scheduled local alarm:', id);
   } catch (err) {
     console.error('[AlarmManager] scheduleLocalAlarm failed:', err);
@@ -114,8 +133,12 @@ export async function scheduleLocalAlarm(
  */
 export async function cancelLocalAlarm(id: string): Promise<void> {
   if (Platform.OS !== 'android') return;
+  
   try {
     await notifee.cancelTriggerNotification(id);
+    console.log('❌ Cancelling alarm from the alarm manager:', id);
+    const alarms = await notifee.getTriggerNotifications();
+    console.log('Remaining alarms from the alarm manager:', alarms.length);
   } catch {
     // Alarm may not exist — ignore
   }
@@ -127,17 +150,17 @@ export async function cancelLocalAlarm(id: string): Promise<void> {
  * Returns unsubscribe function.
  */
 export function registerNotifeeHandler(
-  onAlarm: (title: string, type: string) => void
+  onAlarm: (title: string, type: string, alarmId: string) => void
 ): () => void {
   if (Platform.OS !== 'android') return () => {};
   console.log('FRONETND ALARM PAGE REGISTERED');
   return notifee.onForegroundEvent(({ type, detail }) => {
     if (type === EventType.DELIVERED || type === EventType.PRESS) {
       const data = detail.notification?.data as
-        | { alarmTitle?: string; alarmType?: string }
+        | { alarmTitle?: string; alarmType?: string; alarmId?: string }
         | undefined;
       if (data?.alarmTitle) {
-        onAlarm(data.alarmTitle, data.alarmType ?? 'task');
+        onAlarm(data.alarmTitle, data.alarmType ?? 'task', data.alarmId ?? '');
       }
     }
   });
@@ -145,9 +168,10 @@ export function registerNotifeeHandler(
 
 // Module-level callback — registered by _layout.tsx so the styled modal can be shown
 // from anywhere without needing React hooks in this utility file.
-let _showOverlayModal: (() => void) | null = null;
+// Accepts an onDismissed callback so checkAndPromptOverlayPermission can await user action.
+let _showOverlayModal: ((onDismissed: () => void) => void) | null = null;
 
-export function registerOverlayModalTrigger(fn: () => void) {
+export function registerOverlayModalTrigger(fn: (onDismissed: () => void) => void) {
   _showOverlayModal = fn;
 }
 
@@ -176,17 +200,19 @@ export async function checkAndPromptFullScreenIntent(): Promise<boolean> {
   try {
     const granted: boolean = await NativeModules.OverlayPermission.canUseFullScreenIntent();
     if (granted) return false;
-    Alert.alert(
-      'Enable Full Screen Alarms',
-      'To allow alarms to open automatically on your screen (even when using other apps), please enable "Full screen intents" for Sticky Notes.',
-      [
-        { text: 'Later', style: 'cancel' },
-        {
-          text: 'Open Settings',
-          onPress: () => NativeModules.OverlayPermission.openFullScreenIntentSettings(),
-        },
-      ],
-    );
+    await new Promise<void>((resolve) => {
+      Alert.alert(
+        'Enable Full Screen Alarms',
+        'To allow alarms to wake your screen and open automatically when your phone is locked or the screen is off, please enable "Full screen intents" for Sticky Notes.',
+        [
+          { text: 'Later', style: 'cancel', onPress: () => resolve() },
+          {
+            text: 'Open Settings',
+            onPress: () => { NativeModules.OverlayPermission.openFullScreenIntentSettings(); resolve(); },
+          },
+        ],
+      );
+    });
     return true;
   } catch {
     return false;
@@ -202,29 +228,29 @@ export async function checkAndPromptOverlayPermission(): Promise<void> {
   if (Platform.OS !== 'android') return;
   const granted = await canDrawOverlays();
   if (granted) return;
-  _showOverlayModal?.();
+  const showModal = _showOverlayModal;
+  if (!showModal) return;
+  await new Promise<void>((resolve) => { showModal(resolve); });
 }
 
 /**
- * Check ALL permissions needed for alarm screen to open over other apps automatically.
- * Call this whenever user enables an alarm (task-editor / event-editor) AND on app open.
+ * Check ALL permissions needed for alarm screen to open automatically on time, in all situations:
+ *   - Phone locked / screen off
+ *   - User using another app
+ *   - App killed
  *
- * Required permissions:
- *   1. USE_FULL_SCREEN_INTENT (Android 14+) — allows alarm screen to appear over other apps
- *   2. SYSTEM_ALERT_WINDOW — display over other apps
- *   3. Battery optimization OFF — prevents OS from delaying alarm delivery
+ * USE_FULL_SCREEN_INTENT alone handles all three cases — SYSTEM_ALERT_WINDOW is not needed.
+ * Battery optimization must also be OFF so Samsung/OEM does not delay alarm delivery.
  *
- * Alerts are shown one at a time with a short delay between them so they don't overlap.
+ * Call whenever user enables an alarm (task-editor / event-editor) AND on every app open.
  */
 export async function checkAllAlarmPermissions(): Promise<void> {
   if (Platform.OS !== 'android') return;
-  // 1. Full screen intent — most critical, needed to auto-open over other apps
-  const fsiNotGranted = await checkAndPromptFullScreenIntent();
-  // Small delay so alerts don't stack on top of each other
-  if (fsiNotGranted) await new Promise<void>((r) => setTimeout(r, 600));
-  // 2. Display over other apps
-  await checkAndPromptOverlayPermission();
-  // 3. Battery optimization
-  await new Promise<void>((r) => setTimeout(r, 600));
-  checkAlarmSystemPermissions();
+  // Each step awaits user action (tap) before the next prompt appears.
+  // 1. Full screen intent — auto-opens alarm screen when screen is OFF / locked
+  await checkAndPromptFullScreenIntent();
+  // 2. Battery optimization — prevents Samsung/OEM from killing the alarm process
+  await checkAlarmSystemPermissions();
+  // 3. Display over other apps — allows alarm screen to launch when screen is ON and another app is open
+  await checkAndPromptOverlayPermission();  
 }

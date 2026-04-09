@@ -10,7 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useEventsStore } from '../store/eventsStore';
 import { useCalendarStore } from '../store/calendarStore';
-import { scheduleLocalAlarm, cancelLocalAlarm, checkAllAlarmPermissions } from '../utils/alarmManager';
+import { scheduleLocalAlarm, cancelLocalAlarm } from '../utils/alarmManager';
 import { useThemeColors } from '../store/themeStore';
 import { useNotificationsStore } from '../store/notificationsStore';
 
@@ -72,9 +72,9 @@ const [alarmEnabled, setAlarmEnabled] = useState(!!existing?.alarmAt);
 
 const handleAlarmToggle = (value: boolean) => {
   setAlarmEnabled(value);
-  if (value) {
-    checkAllAlarmPermissions();
-  }
+  // if (value) {
+  //   checkAllAlarmPermissions();
+  // }
 };
 
 const isPast = startDate < new Date();
@@ -117,9 +117,11 @@ const [showEndTime,   setShowEndTime]   = useState(false);
         }
       }
 
-      // Compute alarmAt for backend alarm push (exact start time)
-      const alarmAt: string | null = (alarmEnabled && startDate > new Date())
-        ? startDate.toISOString()
+      // Compute alarmAt — zero seconds/ms so alarm fires at exactly HH:mm:00
+      const alarmDate = new Date(startDate);
+      alarmDate.setSeconds(0, 0);
+      const alarmAt: string | null = (alarmEnabled && alarmDate > new Date())
+        ? alarmDate.toISOString()
         : null;
 
       if (isNew) {

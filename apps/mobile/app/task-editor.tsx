@@ -9,7 +9,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTodosStore } from '../store/todosStore';
-import { scheduleLocalAlarm, cancelLocalAlarm, checkAllAlarmPermissions } from '../utils/alarmManager';
+import { scheduleLocalAlarm, cancelLocalAlarm } from '../utils/alarmManager';
 import { useThemeColors } from '../store/themeStore';
 import { useHomeStore } from '../store/homeStore';
 import { useNotificationsStore } from '../store/notificationsStore';
@@ -78,9 +78,9 @@ export default function TaskEditorScreen() {
 
   const handleAlarmToggle = (value: boolean) => {
     setAlarmEnabled(value);
-    if (value) {
-      checkAllAlarmPermissions();
-    }
+    // if (value) {
+    //   checkAllAlarmPermissions();
+    // }
   };
 
   const isDuePast = !!dueTime && (() => {

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, Animated, Dimensions,
+  View, Text, TouchableOpacity, StyleSheet, Animated, Dimensions, NativeModules,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -8,31 +8,36 @@ import { Ionicons } from '@expo/vector-icons';
 import { createAudioPlayer, setAudioModeAsync, AudioPlayer } from 'expo-audio';
 // AudioPlayer type used by module-level _alarmPlayer below
 import notifee from '@notifee/react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { cancelLocalAlarm } from '../utils/alarmManager';
 
 const { width } = Dimensions.get('window');
 
-// Module-level player — survives component unmount/remount and works across multiple instances.
-// If alarm-screen is somehow pushed twice, both share this reference so stopAllAlarmAudio()
-// always stops whichever player is currently active.
+// Module-level player — survives component unmount/remount.
 let _alarmPlayer: AudioPlayer | null = null;
+
+// Guards against a duplicate alarm-screen mount (multiple navigation paths can push it twice
+// in the killed-app scenario). If a second instance mounts, it immediately exits.
+let _alarmActive = false;
 
 async function stopAllAlarmAudio() {
   if (_alarmPlayer) {
-    try {
-      _alarmPlayer.loop = false;
-      _alarmPlayer.pause();
-      _alarmPlayer.remove();
-    } catch { /* ignore */ }
+    // Null out FIRST so no other code path can touch this player while we stop it.
+    const player = _alarmPlayer;
     _alarmPlayer = null;
+    // Each step in its own try/catch — if pause() throws, remove() still runs.
+    try { player.loop = false; } catch (_) { /* ignore */ }
+    try { player.pause(); } catch (_) { /* ignore */ }
+    try { player.remove(); } catch (_) { /* ignore */ }
   }
-  setAudioModeAsync({ playsInSilentMode: false }).catch(() => {});
+  await setAudioModeAsync({ playsInSilentMode: false }).catch(() => {});
 }
 const AUTO_DISMISS_MS = 2 * 60 * 1000; // 2 minutes
 
 export default function AlarmScreen() {
   console.log('AlarmScreen opened');
   const router = useRouter();
-  const { title = 'Reminder', type = 'task' } = useLocalSearchParams<{ title?: string; type?: string }>();
+  const { title = 'Reminder', type = 'task', fromBackground = 'false', alarmId = '' } = useLocalSearchParams<{ title?: string; type?: string; fromBackground?: string; alarmId?: string }>();
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dismissedRef = useRef(false);
 
@@ -74,6 +79,15 @@ export default function AlarmScreen() {
 
   // ── Sound ─────────────────────────────────────────────────────
   useEffect(() => {
+    // Duplicate-instance guard: if another alarm screen is already active (can happen in
+    // killed-app scenario where multiple navigation paths all push alarm-screen), exit
+    // immediately without starting sound. The real instance handles everything.
+    if (_alarmActive) {
+      router.back();
+      return;
+    }
+    _alarmActive = true;
+
     let mounted = true;
 
     async function playSound() {
@@ -98,7 +112,8 @@ export default function AlarmScreen() {
 
     return () => {
       mounted = false;
-       stopAllAlarmAudio();
+      _alarmActive = false;
+      stopAllAlarmAudio();
       if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, []);
@@ -108,8 +123,23 @@ export default function AlarmScreen() {
     dismissedRef.current = true;
     if (timerRef.current) clearTimeout(timerRef.current);
     await stopAllAlarmAudio();
+    // Cancel the scheduled trigger so Android AlarmManager does not re-fire it
+    if (alarmId) await cancelLocalAlarm(alarmId).catch(() => {});
+    // Clear AsyncStorage so appStateSub does not re-open alarm on next foreground
+    await AsyncStorage.removeItem('pendingAlarm').catch(() => {});
     await notifee.cancelDisplayedNotifications().catch(() => {});
-    //router.replace('/(tabs)/home');
+    try {
+      const isLocked: boolean = await NativeModules.OverlayPermission.isDeviceLocked();
+      router.replace('/(tabs)/home');
+      // If alarm was triggered from background (user was in another app or device was locked),
+      // move the app back to background so the user returns to what they were doing.
+      if (fromBackground === 'true' || isLocked) {
+        await new Promise<void>((r) => setTimeout(r, 200));
+        NativeModules.OverlayPermission.moveTaskToBackground();
+      }
+    } catch {
+      router.replace('/(tabs)/home');
+    }
   }
 
   const rotate = shakeAnim.interpolate({ inputRange: [-1, 1], outputRange: ['-18deg', '18deg'] });

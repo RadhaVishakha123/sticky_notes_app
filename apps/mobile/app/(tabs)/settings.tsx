@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAppAlert } from '../../components/AppAlert';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ActivityIndicator, ScrollView, Switch,
+  ActivityIndicator, ScrollView, Switch, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -11,7 +11,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useThemeStore, useThemeColors } from '../../store/themeStore';
 import { useNotificationsStore } from '../../store/notificationsStore';
 import { requestAlarmPermission } from '../../utils/notifications';
-import { checkAlarmSystemPermissions } from '../../utils/alarmManager';
+import { checkAlarmSystemPermissions,checkAndPromptFullScreenIntent } from '../../utils/alarmManager';
 import { AUTH_COLORS, COLORS } from '../../constants/colors';
 
 // ─── Settings Row ──────────────────────────────────────────────
@@ -52,16 +52,17 @@ function SettingRow({
 export default function SettingsScreen() {
   const { user, logout }        = useAuthStore();
   const { themeMode, setThemeMode } = useThemeStore();
-  const { alarmsEnabled, setAlarmsEnabled } = useNotificationsStore();
+  const { alarmsEnabled, setAlarmsEnabled, notificationsEnabled } = useNotificationsStore();
   const c = useThemeColors();
   const { showAlert, AlertModal } = useAppAlert();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  const handleToggleAlarms = (v: boolean) => {
+  const handleToggleAlarms = async(v: boolean) => {
     setAlarmsEnabled(v);
     if (v) {
       requestAlarmPermission();
-      checkAlarmSystemPermissions();
+      await checkAndPromptFullScreenIntent();
+      await checkAlarmSystemPermissions();    
     }
   };
 
@@ -150,31 +151,36 @@ export default function SettingsScreen() {
               ))}
             </View>
           </View>
-          <SettingRow
-            icon="notifications-outline"
-            iconBg="#F0FDF4"
-            iconColor="#10B981"
-            label="Notifications"
-            sublabel="Configure task & event reminders"
-            onPress={() => router.push('/notification-settings')}
-            c={c}
-          />
-          <SettingRow
-            icon="alarm-outline"
-            iconBg="#FFF1F2"
-            iconColor="#E11D48"
-            label="Alarms"
-            sublabel="Set reminders for tasks & events"
-            c={c}
-            right={
-              <Switch
-                value={alarmsEnabled}
-                onValueChange={handleToggleAlarms}
-                trackColor={{ false: c.border, true: '#E11D48' }}
-                thumbColor="#fff"
-              />
-            }
-          />
+          <View style={!notificationsEnabled ? { opacity: 0.5 } : undefined}>
+            <SettingRow
+              icon="notifications-outline"
+              iconBg="#F0FDF4"
+              iconColor="#10B981"
+              label="Notifications"
+              sublabel={notificationsEnabled ? 'Configure task & event reminders' : 'Permission denied — tap to open Settings'}
+              onPress={notificationsEnabled ? () => router.push('/notification-settings') : () => Linking.openSettings()}
+              c={c}
+            />
+          </View>
+          <View style={!notificationsEnabled ? { opacity: 0.5 } : undefined}>
+            <SettingRow
+              icon="alarm-outline"
+              iconBg="#FFF1F2"
+              iconColor="#E11D48"
+              label="Alarms"
+              sublabel={notificationsEnabled ? 'Set reminders for tasks & events' : 'Notifications required'}
+              c={c}
+              right={
+                <Switch
+                  value={alarmsEnabled}
+                  onValueChange={handleToggleAlarms}
+                  disabled={!notificationsEnabled}
+                  trackColor={{ false: c.border, true: '#E11D48' }}
+                  thumbColor="#fff"
+                />
+              }
+            />
+          </View>
         </View>
 
         {/* LOG OUT */}
@@ -210,7 +216,7 @@ export default function SettingsScreen() {
 
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#F8FAFC' },
-  scroll: { paddingBottom: 5 },
+  scroll: { paddingBottom: 0 },
 
   profileCard: {
     alignItems: 'center',
