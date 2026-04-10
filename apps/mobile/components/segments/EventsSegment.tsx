@@ -157,7 +157,7 @@ export function EventsSegment({ search }: { search: string }) {
 
       {showFromPicker && (
         <DateTimePicker value={dateFrom ?? new Date()} mode="date" display="default"
-          maximumDate={dateTo ?? new Date()}
+          maximumDate={dateTo ?? undefined}
           onChange={(_, d) => {
             setShowFromPicker(false);
             if (d) {
@@ -169,7 +169,6 @@ export function EventsSegment({ search }: { search: string }) {
       {showToPicker && (
         <DateTimePicker value={dateTo ?? new Date()} mode="date" display="default"
           minimumDate={dateFrom ?? undefined}
-          maximumDate={new Date()}
           onChange={(_, d) => {
             setShowToPicker(false);
             if (d) {

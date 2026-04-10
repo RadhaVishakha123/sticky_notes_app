@@ -50,6 +50,13 @@ export function OverlayPermissionModal({ visible, onDismiss }: Props) {
             This allows alarms to appear on your screen even when the app is closed or the screen is locked.
           </Text>
 
+          {/* Steps */}
+          <Text style={s.steps}>
+            After tapping Allow:{'\n'}
+            {'1.'} Find <Text style={s.bold}>Sticky Notes</Text> in the list{'\n'}
+            {'2.'} Enable <Text style={s.bold}>Allow display over other apps</Text>
+          </Text>
+
           {/* Divider */}
           <View style={s.divider} />
 
@@ -131,7 +138,23 @@ const s = StyleSheet.create({
     color: '#999',
     textAlign: 'center',
     lineHeight: 21,
-    marginBottom: 24,
+    marginBottom: 14,
+  },
+  steps: {
+    fontSize: 13,
+    color: '#BBB',
+    lineHeight: 22,
+    alignSelf: 'flex-start',
+    marginBottom: 20,
+    backgroundColor: '#252525',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    width: '100%',
+  },
+  bold: {
+    fontWeight: '700',
+    color: '#E2E8F0',
   },
   divider: {
     width: '100%',

@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAppAlert } from '../../components/AppAlert';
 import {
   View, Text, TouchableOpacity, StyleSheet,
   ActivityIndicator, ScrollView, Switch, Linking,
+  NativeModules, Platform, AppState,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -11,7 +12,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useThemeStore, useThemeColors } from '../../store/themeStore';
 import { useNotificationsStore } from '../../store/notificationsStore';
 import { requestAlarmPermission } from '../../utils/notifications';
-import { checkAlarmSystemPermissions,checkAndPromptFullScreenIntent } from '../../utils/alarmManager';
+import { checkAlarmSystemPermissions, checkAndPromptFullScreenIntent } from '../../utils/alarmManager';
 import { AUTH_COLORS, COLORS } from '../../constants/colors';
 
 // ─── Settings Row ──────────────────────────────────────────────
@@ -57,13 +58,58 @@ export default function SettingsScreen() {
   const { showAlert, AlertModal } = useAppAlert();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  const handleToggleAlarms = async(v: boolean) => {
-    setAlarmsEnabled(v);
-    if (v) {
-      requestAlarmPermission();
-      await checkAndPromptFullScreenIntent();
-      await checkAlarmSystemPermissions();    
+  // Tracks whether the user tapped the toggle while permission was missing.
+  // When the app returns to foreground (after visiting system settings) we re-check
+  // and enable the toggle only if the permission was actually granted.
+  const pendingAlarmEnable = useRef(false);
+
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    const sub = AppState.addEventListener('change', async (nextState) => {
+      if (nextState !== 'active' || !pendingAlarmEnable.current) return;
+      try {
+        const granted: boolean = await NativeModules.OverlayPermission.canUseFullScreenIntent();
+        if (granted) {
+          pendingAlarmEnable.current = false;
+          setAlarmsEnabled(true);
+          requestAlarmPermission();
+          await checkAlarmSystemPermissions();
+        }
+      } catch { /* non-critical — permission API unavailable */ }
+    });
+    return () => sub.remove();
+  }, [setAlarmsEnabled]);
+
+  const handleToggleAlarms = async (v: boolean) => {
+    if (!v) {
+      setAlarmsEnabled(false);
+      pendingAlarmEnable.current = false;
+      return;
     }
+
+    // On Android, only enable the toggle once Full Screen Intent is granted.
+    if (Platform.OS === 'android') {
+      try {
+        const granted: boolean = await NativeModules.OverlayPermission.canUseFullScreenIntent();
+        if (!granted) {
+          // Show the permission modal but keep the toggle OFF.
+          // The AppState listener above will enable it when the user returns
+          // from system settings with the permission granted.
+          pendingAlarmEnable.current = true;
+          await checkAndPromptFullScreenIntent();
+          // If the user denied / tapped Later without going to settings, clear the flag.
+          const nowGranted: boolean = await NativeModules.OverlayPermission.canUseFullScreenIntent();
+          if (!nowGranted) {
+            pendingAlarmEnable.current = false;
+          }
+          return;
+        }
+      } catch { /* non-critical — permission API unavailable, fall through to enable */ }
+    }
+
+    setAlarmsEnabled(true);
+    requestAlarmPermission();
+    await checkAlarmSystemPermissions();
   };
 
   const avatarLetter = (user?.name ?? user?.email ?? '?')[0].toUpperCase();

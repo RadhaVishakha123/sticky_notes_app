@@ -69,7 +69,7 @@
       "typedRoutes": true
     },
     "extra": {
-      "apiUrl": "http://192.168.0.109:3000"
+      "apiUrl": "http://192.168.0.122:3000"
     }
   }
 }
