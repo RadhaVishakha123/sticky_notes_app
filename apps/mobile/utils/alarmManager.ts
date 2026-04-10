@@ -1,4 +1,5 @@
-import { Platform, Alert, NativeModules } from 'react-native';
+import { Platform, NativeModules } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import notifee, {
   AndroidCategory,
   AndroidImportance,
@@ -58,21 +59,15 @@ export async function checkAlarmSystemPermissions(): Promise<void> {
     // 2. OEM battery manager (Samsung, Xiaomi, Huawei, etc.) — cannot be auto-granted.
     //    Only show if battery optimization is STILL active — if the user already whitelisted
     //    the app (via the dialog above or manually), isBatteryOptimizationEnabled() returns
-    //    false and we skip this alert so it never shows again.
+    //    false and we skip this modal so it never shows again.
     const stillOptimized = await notifee.isBatteryOptimizationEnabled();
     if (stillOptimized) {
       const powerInfo = await notifee.getPowerManagerInfo();
       if (powerInfo.activity) {
-        await new Promise<void>((resolve) => {
-          Alert.alert(
-            'Allow App to Run in Background',
-            'Your device may delay or block alarms.\n\nAfter tapping "Open Settings":\n1. Find "Sticky Notes" in the list\n2. Tap it\n3. Select "Unrestricted" or "Don\'t optimize"\n\nThis ensures your alarms fire on time.',
-            [
-              { text: 'Later', style: 'cancel', onPress: () => resolve() },
-              { text: 'Open Settings', onPress: () => { notifee.openPowerManagerSettings(); resolve(); } },
-            ],
-          );
-        });
+        const showModal = _showBatteryOptModal;
+        if (showModal) {
+          await new Promise<void>((resolve) => { showModal(resolve); });
+        }
       }
     }
   } catch {
@@ -89,6 +84,8 @@ export async function scheduleLocalAlarm(
   if (Platform.OS !== 'android') return;
   try {
     await ensureAlarmChannel();
+    // Clear any dismissed-alarm guard so a rescheduled alarm (same id) can show again.
+    await AsyncStorage.removeItem('lastDismissedAlarmId').catch(() => {});
     await notifee.createTriggerNotification(
       {
         id,
@@ -166,13 +163,21 @@ export function registerNotifeeHandler(
   });
 }
 
-// Module-level callback — registered by _layout.tsx so the styled modal can be shown
+// Module-level callbacks — registered by _layout.tsx so styled in-app modals can be shown
 // from anywhere without needing React hooks in this utility file.
-// Accepts an onDismissed callback so checkAndPromptOverlayPermission can await user action.
+// Each accepts an onDismissed callback so the permission check can await user action.
 let _showOverlayModal: ((onDismissed: () => void) => void) | null = null;
+let _showFullScreenIntentModal: ((onDismissed: () => void) => void) | null = null;
+let _showBatteryOptModal: ((onDismissed: () => void) => void) | null = null;
 
 export function registerOverlayModalTrigger(fn: (onDismissed: () => void) => void) {
   _showOverlayModal = fn;
+}
+export function registerFullScreenIntentModalTrigger(fn: (onDismissed: () => void) => void) {
+  _showFullScreenIntentModal = fn;
+}
+export function registerBatteryOptModalTrigger(fn: (onDismissed: () => void) => void) {
+  _showBatteryOptModal = fn;
 }
 
 /**
@@ -200,19 +205,10 @@ export async function checkAndPromptFullScreenIntent(): Promise<boolean> {
   try {
     const granted: boolean = await NativeModules.OverlayPermission.canUseFullScreenIntent();
     if (granted) return false;
-    await new Promise<void>((resolve) => {
-      Alert.alert(
-        'Enable Full Screen Alarms',
-        'To allow alarms to wake your screen and open automatically when your phone is locked or the screen is off, please enable "Full screen intents" for Sticky Notes.',
-        [
-          { text: 'Later', style: 'cancel', onPress: () => resolve() },
-          {
-            text: 'Open Settings',
-            onPress: () => { NativeModules.OverlayPermission.openFullScreenIntentSettings(); resolve(); },
-          },
-        ],
-      );
-    });
+    const showModal = _showFullScreenIntentModal;
+    if (showModal) {
+      await new Promise<void>((resolve) => { showModal(resolve); });
+    }
     return true;
   } catch {
     return false;

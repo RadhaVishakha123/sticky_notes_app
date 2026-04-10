@@ -13,8 +13,10 @@ import { useIsDark, useThemeHydrated } from '../store/themeStore';
 import { useNotificationsStore } from '../store/notificationsStore';
 import { requestNotificationPermission, requestAlarmPermission } from '../utils/notifications';
 import notifee from '@notifee/react-native';
-import { scheduleLocalAlarm, cancelLocalAlarm, registerNotifeeHandler, registerOverlayModalTrigger, checkAllAlarmPermissions } from '../utils/alarmManager';
+import { scheduleLocalAlarm, cancelLocalAlarm, registerNotifeeHandler, registerOverlayModalTrigger, registerFullScreenIntentModalTrigger, registerBatteryOptModalTrigger, checkAllAlarmPermissions } from '../utils/alarmManager';
 import { OverlayPermissionModal } from '../components/OverlayPermissionModal';
+import { FullScreenIntentModal } from '../components/FullScreenIntentModal';
+import { BatteryOptimizationModal } from '../components/BatteryOptimizationModal';
 import { pushApi } from '../services/api';
 
 SplashScreen.preventAutoHideAsync();
@@ -46,12 +48,24 @@ export default function RootLayout() {
   const [pendingAlarm, setPendingAlarm] = useState<{ title: string; type: string; fromBackground: boolean; alarmId: string } | null>(null);
   const [showOverlayModal, setShowOverlayModal] = useState(false);
   const overlayDismissRef = useRef<(() => void) | null>(null);
+  const [showFullScreenIntentModal, setShowFullScreenIntentModal] = useState(false);
+  const fullScreenIntentDismissRef = useRef<(() => void) | null>(null);
+  const [showBatteryOptModal, setShowBatteryOptModal] = useState(false);
+  const batteryOptDismissRef = useRef<(() => void) | null>(null);
 
-  // Register the modal trigger so alarmManager.ts can open it and await user action
+  // Register modal triggers so alarmManager.ts can open each one and await user action
   useEffect(() => {
     registerOverlayModalTrigger((onDismissed) => {
       overlayDismissRef.current = onDismissed;
       setShowOverlayModal(true);
+    });
+    registerFullScreenIntentModalTrigger((onDismissed) => {
+      fullScreenIntentDismissRef.current = onDismissed;
+      setShowFullScreenIntentModal(true);
+    });
+    registerBatteryOptModalTrigger((onDismissed) => {
+      batteryOptDismissRef.current = onDismissed;
+      setShowBatteryOptModal(true);
     });
   }, []);
 
@@ -98,6 +112,8 @@ export default function RootLayout() {
       if (stored) {
         await AsyncStorage.removeItem('pendingAlarm');
         const alarm = JSON.parse(stored) as { title: string; type: string; alarmId?: string };
+        const dismissedId = await AsyncStorage.getItem('lastDismissedAlarmId').catch(() => null);
+        if (dismissedId && dismissedId === (alarm.alarmId ?? '')) return; // already dismissed
         setPendingAlarm({ ...alarm, fromBackground: true, alarmId: alarm.alarmId ?? '' });
       }
     });
@@ -109,6 +125,8 @@ export default function RootLayout() {
         if (stored) {
           await AsyncStorage.removeItem('pendingAlarm');
           const alarm = JSON.parse(stored) as { title: string; type: string; alarmId?: string };
+          const dismissedId = await AsyncStorage.getItem('lastDismissedAlarmId').catch(() => null);
+          if (dismissedId && dismissedId === (alarm.alarmId ?? '')) return; // already dismissed
           setPendingAlarm({ ...alarm, fromBackground: true, alarmId: alarm.alarmId ?? '' });
         }
       });
@@ -243,6 +261,10 @@ export default function RootLayout() {
       if (stored) {
         await AsyncStorage.removeItem('pendingAlarm');
         const alarm = JSON.parse(stored) as { title: string; type: string; alarmId?: string };
+        // Skip re-showing if this alarm was already dismissed (race: onBackgroundEvent
+        // may write pendingAlarm after dismiss() already cleared it).
+        const dismissedId = await AsyncStorage.getItem('lastDismissedAlarmId').catch(() => null);
+        if (dismissedId && dismissedId === (alarm.alarmId ?? '')) return;
         openAlarm(alarm.title, alarm.type, true, alarm.alarmId ?? '');
       }
     });
@@ -335,6 +357,16 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <ThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
+      <FullScreenIntentModal visible={showFullScreenIntentModal} onDismiss={() => {
+        setShowFullScreenIntentModal(false);
+        fullScreenIntentDismissRef.current?.();
+        fullScreenIntentDismissRef.current = null;
+      }} />
+      <BatteryOptimizationModal visible={showBatteryOptModal} onDismiss={() => {
+        setShowBatteryOptModal(false);
+        batteryOptDismissRef.current?.();
+        batteryOptDismissRef.current = null;
+      }} />
       <OverlayPermissionModal visible={showOverlayModal} onDismiss={() => {
         setShowOverlayModal(false);
         overlayDismissRef.current?.();

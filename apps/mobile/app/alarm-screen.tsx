@@ -125,6 +125,10 @@ export default function AlarmScreen() {
     await stopAllAlarmAudio();
     // Cancel the scheduled trigger so Android AlarmManager does not re-fire it
     if (alarmId) await cancelLocalAlarm(alarmId).catch(() => {});
+    // Mark this alarmId as dismissed BEFORE clearing pendingAlarm.
+    // onBackgroundEvent (index.js) may finish writing pendingAlarm AFTER this dismiss runs
+    // (race condition). appStateSub checks lastDismissedAlarmId to skip re-showing it.
+    if (alarmId) await AsyncStorage.setItem('lastDismissedAlarmId', alarmId).catch(() => {});
     // Clear AsyncStorage so appStateSub does not re-open alarm on next foreground
     await AsyncStorage.removeItem('pendingAlarm').catch(() => {});
     await notifee.cancelDisplayedNotifications().catch(() => {});

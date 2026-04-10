@@ -28,7 +28,7 @@ import type {
 const API_URL =
   process.env.EXPO_PUBLIC_API_URL ??
   (Constants.expoConfig?.extra?.apiUrl as string | undefined) ??
-  'http://192.168.0.110:3000';
+  'http://192.168.0.122:3000';
 
 export const ACCESS_TOKEN_KEY = 'access_token';
 export const TOKEN_ID_KEY = 'token_id';

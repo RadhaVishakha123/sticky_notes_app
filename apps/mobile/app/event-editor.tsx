@@ -10,7 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useEventsStore } from '../store/eventsStore';
 import { useCalendarStore } from '../store/calendarStore';
-import { scheduleLocalAlarm, cancelLocalAlarm } from '../utils/alarmManager';
+import { scheduleLocalAlarm, cancelLocalAlarm, checkAllAlarmPermissions } from '../utils/alarmManager';
 import { useThemeColors } from '../store/themeStore';
 import { useNotificationsStore } from '../store/notificationsStore';
 
@@ -72,9 +72,7 @@ const [alarmEnabled, setAlarmEnabled] = useState(!!existing?.alarmAt);
 
 const handleAlarmToggle = (value: boolean) => {
   setAlarmEnabled(value);
-  // if (value) {
-  //   checkAllAlarmPermissions();
-  // }
+  if (value) checkAllAlarmPermissions();
 };
 
 const isPast = startDate < new Date();
