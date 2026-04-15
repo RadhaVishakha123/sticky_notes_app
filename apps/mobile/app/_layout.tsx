@@ -4,7 +4,7 @@ import { Stack, useRouter, usePathname } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -84,7 +84,6 @@ export default function RootLayout() {
   // Both store to pendingAlarm so the navigation effect below can open alarm-screen once ready.
   useEffect(() => {
     // Path 1: deep link (stickynotes://alarm-screen?title=...&type=...)
-    console.log('Initial URL:', Linking.getInitialURL());
     Linking.getInitialURL().then((url) => {
       if (url?.includes('alarm-screen')) {
         try {
@@ -354,7 +353,7 @@ export default function RootLayout() {
   if (!fontsLoaded || !themeHydrated) return null;
 
   return (
-    <SafeAreaProvider>
+    <SafeAreaProvider initialMetrics={initialWindowMetrics}>
       <ThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <FullScreenIntentModal visible={showFullScreenIntentModal} onDismiss={() => {

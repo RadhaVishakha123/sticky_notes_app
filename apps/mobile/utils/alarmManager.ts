@@ -116,9 +116,6 @@ export async function scheduleLocalAlarm(
         },
       }
     );
-    const alarms = await notifee.getTriggerNotifications();
-    console.log('New alarms from the alarm manager:', alarms.length);
-    console.log('[AlarmManager] scheduled local alarm:', id);
   } catch (err) {
     console.error('[AlarmManager] scheduleLocalAlarm failed:', err);
   }

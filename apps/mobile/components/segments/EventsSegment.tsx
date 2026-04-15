@@ -1,9 +1,10 @@
 import { useState, useCallback, useEffect } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, ActivityIndicator,
-  Modal, Share, StyleSheet,
+  Modal, Share, StyleSheet, Platform,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { IOSPickerModal } from '../IOSPickerModal';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useEventsStore } from '../../store/eventsStore';
@@ -155,27 +156,58 @@ export function EventsSegment({ search }: { search: string }) {
         </View>
       </View>
 
-      {showFromPicker && (
-        <DateTimePicker value={dateFrom ?? new Date()} mode="date" display="default"
-          maximumDate={dateTo ?? undefined}
-          onChange={(_, d) => {
-            setShowFromPicker(false);
-            if (d) {
+      {Platform.OS === 'ios' ? (
+        <>
+          <IOSPickerModal
+            visible={showFromPicker}
+            value={dateFrom ?? new Date()}
+            mode="date"
+            maximumDate={dateTo ?? undefined}
+            onCancel={() => setShowFromPicker(false)}
+            onDone={(d) => {
+              setShowFromPicker(false);
               if (dateTo && d > dateTo) setDateTo(null);
               setDateFrom(d);
-            }
-          }} />
-      )}
-      {showToPicker && (
-        <DateTimePicker value={dateTo ?? new Date()} mode="date" display="default"
-          minimumDate={dateFrom ?? undefined}
-          onChange={(_, d) => {
-            setShowToPicker(false);
-            if (d) {
+            }}
+          />
+          <IOSPickerModal
+            visible={showToPicker}
+            value={dateTo ?? new Date()}
+            mode="date"
+            minimumDate={dateFrom ?? undefined}
+            onCancel={() => setShowToPicker(false)}
+            onDone={(d) => {
+              setShowToPicker(false);
               if (dateFrom && d < dateFrom) setDateFrom(null);
               setDateTo(d);
-            }
-          }} />
+            }}
+          />
+        </>
+      ) : (
+        <>
+          {showFromPicker && (
+            <DateTimePicker value={dateFrom ?? new Date()} mode="date" display="default"
+              maximumDate={dateTo ?? undefined}
+              onChange={(_, d) => {
+                setShowFromPicker(false);
+                if (d) {
+                  if (dateTo && d > dateTo) setDateTo(null);
+                  setDateFrom(d);
+                }
+              }} />
+          )}
+          {showToPicker && (
+            <DateTimePicker value={dateTo ?? new Date()} mode="date" display="default"
+              minimumDate={dateFrom ?? undefined}
+              onChange={(_, d) => {
+                setShowToPicker(false);
+                if (d) {
+                  if (dateFrom && d < dateFrom) setDateFrom(null);
+                  setDateTo(d);
+                }
+              }} />
+          )}
+        </>
       )}
 
       {/* Category bottom-sheet */}
@@ -260,9 +292,10 @@ export function EventsSegment({ search }: { search: string }) {
                     </TouchableOpacity>
                     <TouchableOpacity
                       hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                      style={styles.deleteBtn}
                       onPress={() => showAlert({ type: 'confirm', title: 'Delete Event', message: `Are you sure you want to delete "${item.title}"? This cannot be undone.`, buttons: [{ text: 'Cancel', style: 'cancel' }, { text: 'Delete', style: 'destructive', onPress: () => deleteEvent(item.id) }] })}
                     >
-                      <Ionicons name="trash-outline" size={16} color="#CBD5E1" />
+                      <Ionicons name="trash-outline" size={16} color="#EF4444" />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -294,4 +327,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden', marginHorizontal: 0,
   },
   progressFill: { height: 3, borderRadius: 2 },
+  deleteBtn: {
+    width: 28, height: 28, borderRadius: 8,
+    backgroundColor: '#FEE2E2',
+    alignItems: 'center', justifyContent: 'center',
+  },
 });

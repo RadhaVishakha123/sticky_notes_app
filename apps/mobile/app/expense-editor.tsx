@@ -3,10 +3,11 @@ import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, Platform, KeyboardAvoidingView, ActivityIndicator,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { IOSPickerModal } from '../components/IOSPickerModal';
 import { useAppAlert } from '../components/AppAlert';
 import { useExpenseStore, type ExpenseCategory } from '../store/expenseStore';
 import { useThemeColors } from '../store/themeStore';
@@ -34,6 +35,7 @@ function dateToStr(d: Date): string {
 // ─── Screen ───────────────────────────────────────────────────
 
 export default function ExpenseEditorScreen() {
+  const insets = useSafeAreaInsets();
   const c = useThemeColors();
   const { showAlert, AlertModal } = useAppAlert();
   const { id } = useLocalSearchParams<{ id?: string }>();
@@ -104,7 +106,7 @@ export default function ExpenseEditorScreen() {
   };
 
   return (
-    <SafeAreaView style={[s.root, { backgroundColor: c.bg }]} edges={['top']}>
+    <View style={[s.root, { backgroundColor: c.bg, paddingTop: insets.top }]}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         {/* Header */}
         <View style={[s.header, { borderBottomColor: c.hairline }]}>
@@ -197,7 +199,16 @@ export default function ExpenseEditorScreen() {
               {date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
             </Text>
           </TouchableOpacity>
-          {showDatePicker && (
+          {Platform.OS === 'ios' ? (
+            <IOSPickerModal
+              visible={showDatePicker}
+              value={date}
+              mode="date"
+              maximumDate={new Date()}
+              onCancel={() => setShowDatePicker(false)}
+              onDone={(d) => { setShowDatePicker(false); setDate(d); }}
+            />
+          ) : showDatePicker && (
             <DateTimePicker
               value={date}
               mode="date"
@@ -209,7 +220,7 @@ export default function ExpenseEditorScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
       {AlertModal}
-    </SafeAreaView>
+    </View>
   );
 }
 

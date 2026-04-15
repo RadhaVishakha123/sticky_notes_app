@@ -4,10 +4,11 @@ import {
   ScrollView, Switch, ActivityIndicator, Platform, KeyboardAvoidingView,
 } from 'react-native';
 import { useAppAlert } from '../components/AppAlert';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { IOSPickerModal } from '../components/IOSPickerModal';
 import { useTodosStore } from '../store/todosStore';
 import { scheduleLocalAlarm, cancelLocalAlarm, checkAllAlarmPermissions } from '../utils/alarmManager';
 import { useThemeColors } from '../store/themeStore';
@@ -48,6 +49,7 @@ function parseTime(t: string | null): { h: number; m: number } | null {
 // ─── Screen ───────────────────────────────────────────────────
 
 export default function TaskEditorScreen() {
+  const insets = useSafeAreaInsets();
   const c = useThemeColors();
   const { showAlert, AlertModal } = useAppAlert();
   const { id } = useLocalSearchParams<{ id?: string }>();
@@ -178,7 +180,7 @@ export default function TaskEditorScreen() {
   })();
 
   return (
-    <SafeAreaView style={[s.root, { backgroundColor: c.bg }]} edges={['top']}>
+    <View style={[s.root, { backgroundColor: c.bg, paddingTop: insets.top }]}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       {/* ── Header ── */}
       <View style={[s.header, { backgroundColor: c.surface, borderBottomColor: c.border }]}>
@@ -302,11 +304,34 @@ export default function TaskEditorScreen() {
           </View>
         </TouchableOpacity>
 
-        {showDatePicker && (
+        {Platform.OS === 'ios' ? (
+          <IOSPickerModal
+            visible={showDatePicker}
+            value={dueDate}
+            mode="date"
+            onCancel={() => setShowDatePicker(false)}
+            onDone={(d) => {
+              setShowDatePicker(false);
+              if (d) {
+                if (dueTime) {
+                  const newDate = new Date(d);
+                  newDate.setHours(dueTime.h, dueTime.m, 0, 0);
+                  if (newDate < new Date()) {
+                    const now = new Date();
+                    now.setMinutes(now.getMinutes() + 5);
+                    setDueTime({ h: now.getHours(), m: now.getMinutes() });
+                    setAlarmEnabled(false);
+                  }
+                }
+                setDueDate(d);
+              }
+            }}
+          />
+        ) : showDatePicker && (
           <DateTimePicker
             value={dueDate}
             mode="date"
-            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            display="default"
             onChange={(_, d) => {
               setShowDatePicker(false);
               if (d) {
@@ -357,12 +382,23 @@ export default function TaskEditorScreen() {
           </View>
         </TouchableOpacity>
 
-        {showTimePicker && (
+        {Platform.OS === 'ios' ? (
+          <IOSPickerModal
+            visible={showTimePicker}
+            value={timePickerDate}
+            mode="time"
+            onCancel={() => setShowTimePicker(false)}
+            onDone={(d) => {
+              setShowTimePicker(false);
+              if (d) setDueTime({ h: d.getHours(), m: d.getMinutes() });
+            }}
+          />
+        ) : showTimePicker && (
           <DateTimePicker
             value={timePickerDate}
             mode="time"
             is24Hour={false}
-            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            display="default"
             onChange={(_, d) => {
               setShowTimePicker(false);
               if (d) setDueTime({ h: d.getHours(), m: d.getMinutes() });
@@ -371,8 +407,8 @@ export default function TaskEditorScreen() {
         )}
 
 
-        {/* ── Alarm toggle (only when time is set) ── */}
-        {dueTime && alarmsEnabled && (
+        {/* ── Alarm toggle (Android only — iOS does not support local alarms) ── */}
+        {Platform.OS === 'android' && dueTime && alarmsEnabled && (
           <View style={[s.fieldRow, { backgroundColor: c.surface, borderColor: c.border }]}>
             <View style={s.fieldLeft}>
               <View style={[s.fieldIcon, { backgroundColor: '#FFF1F2' }]}>
@@ -399,7 +435,7 @@ export default function TaskEditorScreen() {
       </ScrollView>
       {AlertModal}
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 

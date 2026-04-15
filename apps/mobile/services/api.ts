@@ -96,7 +96,7 @@ export const notesApi = {
   deleteImage: (url: string) =>
     api.delete('/notes/image', { data: { url } }),
   detectExpenses: (text: string) =>
-    api.post<ApiResponse<{ amount: number; title: string; category: string; snippet: string }[]>>('/notes/detect-expenses', { text }).then((r) => r.data.data),
+    api.post<ApiResponse<{ amount: number; title: string; category: string; snippet: string , date: string}[]>>('/notes/detect-expenses', { text }).then((r) => r.data.data),
 };
 
 // ─── Todos API ───────────────────────────────────────────────

@@ -59,6 +59,7 @@ export interface Note {
   content: string | null;
   color: string;
   category: string | null;
+  isLocked: boolean;
   userId: string;
   createdAt: string;
   updatedAt: string;
@@ -69,6 +70,7 @@ export interface CreateNoteRequest {
   content?: string;
   color?: string;
   category?: string;
+  isLocked?: boolean;
 }
 
 export interface UpdateNoteRequest {
@@ -76,6 +78,7 @@ export interface UpdateNoteRequest {
   content?: string;
   color?: string;
   category?: string;
+  isLocked?: boolean;
 }
 
 // ── Todos ────────────────────────────────

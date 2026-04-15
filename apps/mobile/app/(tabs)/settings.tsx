@@ -5,7 +5,6 @@ import {
   ActivityIndicator, ScrollView, Switch, Linking,
   NativeModules, Platform, AppState,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/authStore';
@@ -14,6 +13,7 @@ import { useNotificationsStore } from '../../store/notificationsStore';
 import { requestAlarmPermission } from '../../utils/notifications';
 import { checkAlarmSystemPermissions, checkAndPromptFullScreenIntent } from '../../utils/alarmManager';
 import { AUTH_COLORS, COLORS } from '../../constants/colors';
+import { GradientScreen } from '@/components/GradientScreen';
 
 // ─── Settings Row ──────────────────────────────────────────────
 
@@ -138,8 +138,8 @@ export default function SettingsScreen() {
   };
 
   return (
-    <SafeAreaView style={[s.safe, { backgroundColor: c.bg }]}>
-      <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+    <GradientScreen style={s.root}>
+      <ScrollView  showsVerticalScrollIndicator={false}>
 
         {/* Profile card */}
         <View style={s.profileCard}>
@@ -208,25 +208,27 @@ export default function SettingsScreen() {
               c={c}
             />
           </View>
-          <View style={!notificationsEnabled ? { opacity: 0.5 } : undefined}>
-            <SettingRow
-              icon="alarm-outline"
-              iconBg="#FFF1F2"
-              iconColor="#E11D48"
-              label="Alarms"
-              sublabel={notificationsEnabled ? 'Set reminders for tasks & events' : 'Notifications required'}
-              c={c}
-              right={
-                <Switch
-                  value={alarmsEnabled}
-                  onValueChange={handleToggleAlarms}
-                  disabled={!notificationsEnabled}
-                  trackColor={{ false: c.border, true: '#E11D48' }}
-                  thumbColor="#fff"
-                />
-              }
-            />
-          </View>
+          {Platform.OS === 'android' && (
+            <View style={!notificationsEnabled ? { opacity: 0.5 } : undefined}>
+              <SettingRow
+                icon="alarm-outline"
+                iconBg="#FFF1F2"
+                iconColor="#E11D48"
+                label="Alarms"
+                sublabel={notificationsEnabled ? 'Set reminders for tasks & events' : 'Notifications required'}
+                c={c}
+                right={
+                  <Switch
+                    value={alarmsEnabled}
+                    onValueChange={handleToggleAlarms}
+                    disabled={!notificationsEnabled}
+                    trackColor={{ false: c.border, true: '#E11D48' }}
+                    thumbColor="#fff"
+                  />
+                }
+              />
+            </View>
+          )}
         </View>
 
         {/* LOG OUT */}
@@ -254,16 +256,14 @@ export default function SettingsScreen() {
 
       </ScrollView>
       {AlertModal}
-    </SafeAreaView>
+    </GradientScreen>
   );
 }
 
 // ─── Styles ───────────────────────────────────────────────────
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F8FAFC' },
-  scroll: { paddingBottom: 0 },
-
+  root: { flex: 1, backgroundColor: 'transparent' },
   profileCard: {
     alignItems: 'center',
     paddingTop: 32, paddingBottom: 28, paddingHorizontal: 32,
