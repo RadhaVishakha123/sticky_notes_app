@@ -362,7 +362,7 @@ function ExpenseConfirmSheet({
   ) => void;
 }) {
   const c = useThemeColors();
-  const { showAlert } = useAppAlert();
+  const { showAlert, AlertModal } = useAppAlert();
   const isAdd = item.type === 'add';
   const d = isAdd ? item.detected : null;
   const e = !isAdd ? item.existing : null;
@@ -424,165 +424,188 @@ function ExpenseConfirmSheet({
   const handleSkip = () => onAction(false, '', 0, 'Other', new Date());
 
   return (
-    <KeyboardAvoidingView
-          
+    <>
+      <Modal visible transparent animationType="slide" onRequestClose={handleSkip}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
-    <Modal visible transparent animationType="slide" onRequestClose={handleSkip}>
-      <View style={ecs.overlay}>
-        <View style={[ecs.sheet, { backgroundColor: c.surface }]}>
-          <View style={[ecs.handle, { backgroundColor: c.border }]} />
-          <View style={ecs.headerRow}>
-            <View style={[ecs.iconCircle, { backgroundColor: isAdd ? '#D1FAE5' : '#FEE2E2' }]}>
-              <Ionicons
-                name={isAdd ? 'wallet-outline' : 'trash-outline'}
-                size={22}
-                color={isAdd ? '#10B981' : '#EF4444'}
-              />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[ecs.title, { color: c.text }]}>
-                {isAdd ? 'Expense Detected' : 'Expense Removed?'}
-              </Text>
-              {total > 1 && (
-                <Text style={[ecs.subtitle, { color: c.textMuted }]}>
-                  {index} of {total}
-                </Text>
-              )}
-            </View>
-          </View>
-          {isAdd ? (
-            <>
-              {!!d?.snippet && (
-                <View style={[ecs.snippetBox, { backgroundColor: c.surface2 ?? c.inputBg }]}>
-                  <Text style={[ecs.snippetText, { color: c.textSub }]}>
-                    &ldquo;{d.snippet}&rdquo;
-                  </Text>
+          <View style={ecs.overlay}>
+            <View style={[ecs.sheet, { backgroundColor: c.surface }]}>
+              <View style={[ecs.handle, { backgroundColor: c.border }]} />
+              <View style={ecs.headerRow}>
+                <View style={[ecs.iconCircle, { backgroundColor: isAdd ? '#D1FAE5' : '#FEE2E2' }]}>
+                  <Ionicons
+                    name={isAdd ? 'wallet-outline' : 'trash-outline'}
+                    size={22}
+                    color={isAdd ? '#10B981' : '#EF4444'}
+                  />
                 </View>
-              )}
-              <Text style={[ecs.label, { color: c.textSub }]}>What was it for?</Text>
-              <TextInput
-                style={[
-                  ecs.input,
-                  { backgroundColor: c.inputBg, borderColor: c.border, color: c.text },
-                ]}
-                value={expTitle}
-                onChangeText={setExpTitle}
-                placeholder="Expense title"
-                placeholderTextColor={c.textMuted}
-              />
-              <Text style={[ecs.label, { color: c.textSub }]}>Amount (₹)</Text>
-              <TextInput
-                style={[
-                  ecs.input,
-                  { backgroundColor: c.inputBg, borderColor: c.border, color: c.text },
-                ]}
-                value={expAmount}
-                onChangeText={setExpAmount}
-                keyboardType="decimal-pad"
-                placeholder="0"
-                placeholderTextColor={c.textMuted}
-              />
-              <Text style={[ecs.label, { color: c.textSub }]}>Category</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={ecs.pillScroll}>
-                {EXPENSE_CATEGORIES.map((cat) => (
-                  <TouchableOpacity
-                    key={cat}
-                    style={[
-                      ecs.pill,
-                      { borderColor: c.border },
-                      expCategory === cat && ecs.pillActive,
-                    ]}
-                    onPress={() => setExpCategory(cat)}
-                  >
-                    <Text
-                      style={[ecs.pillText, { color: expCategory === cat ? '#fff' : c.textSub }]}
-                    >
-                      {cat}
+                <View style={{ flex: 1 }}>
+                  <Text style={[ecs.title, { color: c.text }]}>
+                    {isAdd ? 'Expense Detected' : 'Expense Removed?'}
+                  </Text>
+                  {total > 1 && (
+                    <Text style={[ecs.subtitle, { color: c.textMuted }]}>
+                      {index} of {total}
                     </Text>
-                  </TouchableOpacity>
-                ))}
+                  )}
+                </View>
+              </View>
+              <ScrollView
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: 8 }}
+              >
+                {isAdd ? (
+                  <>
+                    {!!d?.snippet && (
+                      <View style={[ecs.snippetBox, { backgroundColor: c.surface2 ?? c.inputBg }]}>
+                        <Text style={[ecs.snippetText, { color: c.textSub }]}>
+                          &ldquo;{d.snippet}&rdquo;
+                        </Text>
+                      </View>
+                    )}
+                    <Text style={[ecs.label, { color: c.textSub }]}>What was it for?</Text>
+                    <TextInput
+                      style={[
+                        ecs.input,
+                        { backgroundColor: c.inputBg, borderColor: c.border, color: c.text },
+                      ]}
+                      value={expTitle}
+                      onChangeText={setExpTitle}
+                      placeholder="Expense title"
+                      placeholderTextColor={c.textMuted}
+                    />
+                    <Text style={[ecs.label, { color: c.textSub }]}>Amount (₹)</Text>
+                    <TextInput
+                      style={[
+                        ecs.input,
+                        { backgroundColor: c.inputBg, borderColor: c.border, color: c.text },
+                      ]}
+                      value={expAmount}
+                      onChangeText={setExpAmount}
+                      keyboardType="decimal-pad"
+                      placeholder="0"
+                      placeholderTextColor={c.textMuted}
+                    />
+                    <Text style={[ecs.label, { color: c.textSub }]}>Category</Text>
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      style={ecs.pillScroll}
+                      keyboardShouldPersistTaps="handled"
+                    >
+                      {EXPENSE_CATEGORIES.map((cat) => (
+                        <TouchableOpacity
+                          key={cat}
+                          style={[
+                            ecs.pill,
+                            { borderColor: c.border },
+                            expCategory === cat && ecs.pillActive,
+                          ]}
+                          onPress={() => setExpCategory(cat)}
+                        >
+                          <Text
+                            style={[
+                              ecs.pillText,
+                              { color: expCategory === cat ? '#fff' : c.textSub },
+                            ]}
+                          >
+                            {cat}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+
+                    {expCategory === 'Other' && (
+                      <TextInput
+                        style={[
+                          ecs.input,
+                          { backgroundColor: c.inputBg, borderColor: c.border, color: c.text },
+                        ]}
+                        value={customCategory}
+                        onChangeText={setCustomCategory}
+                        placeholder="Enter custom category *"
+                        placeholderTextColor={c.textMuted}
+                        autoFocus
+                      />
+                    )}
+                    <Text style={[ecs.label, { color: c.textSub }]}>Date</Text>
+                    <TouchableOpacity
+                      style={[ecs.datePill, { backgroundColor: c.inputBg, borderColor: c.border }]}
+                      onPress={() => setShowDatePicker(true)}
+                    >
+                      <Ionicons name="calendar-outline" size={16} color={COLORS.primary} />
+                      <Text style={[ecs.datePillText, { color: COLORS.primary }]}>
+                        {expDate.toLocaleDateString('en-US', {
+                          weekday: 'short',
+                          month: 'short',
+                          day: 'numeric',
+                        })}
+                      </Text>
+                    </TouchableOpacity>
+
+                    {Platform.OS === 'ios' ? (
+                      <IOSPickerModal
+                        visible={showDatePicker}
+                        value={expDate}
+                        mode="date"
+                        maximumDate={new Date()}
+                        onCancel={() => setShowDatePicker(false)}
+                        onDone={(d) => {
+                          setShowDatePicker(false);
+                          setExpDate(d);
+                        }}
+                      />
+                    ) : (
+                      showDatePicker && (
+                        <DateTimePicker
+                          value={expDate}
+                          mode="date"
+                          display="default"
+                          maximumDate={new Date()}
+                          onChange={(_, d) => {
+                            setShowDatePicker(false);
+                            if (d) setExpDate(d);
+                          }}
+                        />
+                      )
+                    )}
+                  </>
+                ) : (
+                  <View style={[ecs.removeCard, { backgroundColor: c.surface2 ?? c.inputBg }]}>
+                    <Text style={[ecs.removeTitle, { color: c.text }]}>{e?.title}</Text>
+                    <Text style={[ecs.removeAmount, { color: '#EF4444' }]}>₹{e?.amount}</Text>
+                    <Text style={[ecs.removeHint, { color: c.textMuted }]}>
+                      This expense is no longer mentioned in your note.
+                    </Text>
+                  </View>
+                )}
               </ScrollView>
 
-              {expCategory === 'Other' && (
-                <TextInput
-                  style={[
-                    ecs.input,
-                    { backgroundColor: c.inputBg, borderColor: c.border, color: c.text },
-                  ]}
-                  value={customCategory}
-                  onChangeText={setCustomCategory}
-                  placeholder="Enter custom category *"
-                  placeholderTextColor={c.textMuted}
-                />
-              )}
-              <Text style={[ecs.label, { color: c.textSub }]}>Date</Text>
-              <TouchableOpacity
-                style={[ecs.datePill, { backgroundColor: c.inputBg, borderColor: c.border }]}
-                onPress={() => setShowDatePicker(true)}
-              >
-                <Ionicons name="calendar-outline" size={16} color={COLORS.primary} />
-                <Text style={[ecs.datePillText, { color: COLORS.primary }]}>
-                  {expDate.toLocaleDateString('en-US', {
-                    weekday: 'short',
-                    month: 'short',
-                    day: 'numeric',
-                  })}
-                </Text>
-              </TouchableOpacity>
-
-              {Platform.OS === 'ios' ? (
-                <IOSPickerModal
-                  visible={showDatePicker}
-                  value={expDate}
-                  mode="date"
-                  maximumDate={new Date()}
-                  onCancel={() => setShowDatePicker(false)}
-                  onDone={(d) => {
-                    setShowDatePicker(false);
-                    setExpDate(d);
-                  }}
-                />
-              ) : (
-                showDatePicker && (
-                  <DateTimePicker
-                    value={expDate}
-                    mode="date"
-                    display="default"
-                    maximumDate={new Date()}
-                    onChange={(_, d) => {
-                      setShowDatePicker(false);
-                      if (d) setExpDate(d);
-                    }}
-                  />
-                )
-              )}
-            </>
-          ) : (
-            <View style={[ecs.removeCard, { backgroundColor: c.surface2 ?? c.inputBg }]}>
-              <Text style={[ecs.removeTitle, { color: c.text }]}>{e?.title}</Text>
-              <Text style={[ecs.removeAmount, { color: '#EF4444' }]}>₹{e?.amount}</Text>
-              <Text style={[ecs.removeHint, { color: c.textMuted }]}>
-                This expense is no longer mentioned in your note.
-              </Text>
+              <View style={ecs.btnRow}>
+                <TouchableOpacity
+                  style={[ecs.btnSkip, { borderColor: c.border }]}
+                  onPress={handleSkip}
+                >
+                  <Text style={[ecs.btnSkipText, { color: c.textSub }]}>
+                    {isAdd ? 'Skip' : 'Keep'}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[ecs.btnAdd, { backgroundColor: isAdd ? '#10B981' : '#EF4444' }]}
+                  onPress={handleConfirm}
+                >
+                  <Text style={ecs.btnAddText}>{isAdd ? 'Add to Expenses' : 'Remove'}</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          )}
-
-          <View style={ecs.btnRow}>
-            <TouchableOpacity style={[ecs.btnSkip, { borderColor: c.border }]} onPress={handleSkip}>
-              <Text style={[ecs.btnSkipText, { color: c.textSub }]}>{isAdd ? 'Skip' : 'Keep'}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[ecs.btnAdd, { backgroundColor: isAdd ? '#10B981' : '#EF4444' }]}
-              onPress={handleConfirm}
-            >
-              <Text style={ecs.btnAddText}>{isAdd ? 'Add to Expenses' : 'Remove'}</Text>
-            </TouchableOpacity>
           </View>
-        </View>
-      </View>
-    </Modal>
-    </KeyboardAvoidingView>
+        </KeyboardAvoidingView>
+      </Modal>
+      {AlertModal}
+    </>
   );
 }
 

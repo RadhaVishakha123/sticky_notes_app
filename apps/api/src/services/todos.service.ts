@@ -9,6 +9,7 @@ async function getTokensForUser(userId: string): Promise<string[]> {
   return records.map((r) => r.token);
 }
 
+
 function mapTodo(t: {
   id: string; title: string; description: string | null;
   completed: boolean; status: string; priority: string;
@@ -52,6 +53,7 @@ export class TodosService {
         priority: input.priority,
         dueDate: input.dueDate ? new Date(input.dueDate) : undefined,
         dueTime: input.dueTime,
+        startAt: input.startAt ? new Date(input.startAt) : null,
         reminderAt: input.reminderAt ? new Date(input.reminderAt) : null,
         alarmAt: input.alarmAt ? new Date(input.alarmAt) : null,
         userId,
@@ -80,6 +82,11 @@ export class TodosService {
     }
     if (input.dueDate !== undefined) {
       data.dueDate = input.dueDate ? new Date(input.dueDate) : null;
+    }
+    // Recompute startAt whenever dueDate or dueTime changes
+    if (input.startAt !== undefined) {
+      data.startAt = input.startAt ? new Date(input.startAt) : null;
+      data.startNotifSentAt = null;
     }
     if (input.reminderAt !== undefined) {
       data.reminderAt = input.reminderAt ? new Date(input.reminderAt) : null;

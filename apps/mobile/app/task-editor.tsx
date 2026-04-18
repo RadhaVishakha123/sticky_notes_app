@@ -129,6 +129,14 @@ export default function TaskEditorScreen() {
         }
       }
 
+      // Compute startAt — client-side so timezone is always correct
+      let startAt: string | null = null;
+      if (dueTime) {
+        const sd = new Date(dueDate);
+        sd.setHours(dueTime.h, dueTime.m, 0, 0);
+        startAt = sd.toISOString();
+      }
+
       // Compute alarmAt for backend alarm push (exact due time)
       let alarmAt: string | null = null;
       if (alarmEnabled && dueTime) {
@@ -144,6 +152,7 @@ export default function TaskEditorScreen() {
           status, priority,
           dueDate: dueDateISO,
           dueTime: dueTimeStr,
+          startAt,
           reminderAt,
           alarmAt,
         });
@@ -156,6 +165,7 @@ export default function TaskEditorScreen() {
           status, priority,
           dueDate: dueDateISO,
           dueTime: dueTimeStr ?? null,
+          startAt,
           reminderAt,
           alarmAt,
         });

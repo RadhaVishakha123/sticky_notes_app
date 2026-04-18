@@ -41,7 +41,7 @@ export async function sendPushNotification(
       // Android: high-priority delivery
       android: {
         priority: 'high',
-        notification: { sound: 'default', icon: 'notification_icon' },
+        notification: { sound: 'default', icon: 'ic_launcher', color: '#6366F1' },
       },
       // iOS (APNs via FCM)
       apns: {

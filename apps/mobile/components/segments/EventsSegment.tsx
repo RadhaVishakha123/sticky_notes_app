@@ -292,10 +292,10 @@ export function EventsSegment({ search }: { search: string }) {
                     </TouchableOpacity>
                     <TouchableOpacity
                       hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                      style={styles.deleteBtn}
+                      //style={styles.deleteBtn}
                       onPress={() => showAlert({ type: 'confirm', title: 'Delete Event', message: `Are you sure you want to delete "${item.title}"? This cannot be undone.`, buttons: [{ text: 'Cancel', style: 'cancel' }, { text: 'Delete', style: 'destructive', onPress: () => deleteEvent(item.id) }] })}
                     >
-                      <Ionicons name="trash-outline" size={16} color="#EF4444" />
+                      <Ionicons name="trash-outline" size={16} color="#94A3B8" />
                     </TouchableOpacity>
                   </View>
                 </View>

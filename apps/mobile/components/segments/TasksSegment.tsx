@@ -38,7 +38,6 @@ export function TasksSegment({ search }: { search: string }) {
 
   const nextDay = useCallback(() => {
     setSelectedDate((cur) => {
-      if (cur >= todayStr()) return cur;
       const d = new Date(cur + 'T12:00:00');
       d.setDate(d.getDate() + 1);
       return toLocalDateStr(d.toISOString());
@@ -75,7 +74,6 @@ export function TasksSegment({ search }: { search: string }) {
         todo={todoCount}
         total={totalCount}
         date={selectedDate}
-        isToday={selectedDate === todayStr()}
         onPrevDay={prevDay}
         onNextDay={nextDay}
         onDateChange={setSelectedDate}
@@ -171,7 +169,9 @@ export function TasksSegment({ search }: { search: string }) {
                   {item.dueTime ? (
                     <View style={seg.timeBadge}>
                       <Ionicons name="time-outline" size={11} color="#64748B" />
-                      <Text style={seg.timeBadgeText}>{item.dueTime}</Text>
+                      <Text style={seg.timeBadgeText}>
+                        {(() => { const [h, m] = item.dueTime.split(':'); const d = new Date(); d.setHours(+h, +m); return d.toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }); })()}
+                        </Text>
                     </View>
                   ) : null}
                   {item.alarmAt ? (

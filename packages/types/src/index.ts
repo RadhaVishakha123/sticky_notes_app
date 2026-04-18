@@ -108,6 +108,7 @@ export interface CreateTodoRequest {
   priority?: TodoPriority;
   dueDate?: string;
   dueTime?: string;
+  startAt?: string | null;
   reminderAt?: string | null;
   alarmAt?: string | null;
 }
@@ -120,6 +121,7 @@ export interface UpdateTodoRequest {
   priority?: TodoPriority;
   dueDate?: string | null;
   dueTime?: string | null;
+  startAt?: string | null;
   reminderAt?: string | null;
   alarmAt?: string | null;
 }

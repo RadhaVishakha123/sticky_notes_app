@@ -236,9 +236,12 @@ export default function ExpenseScreen() {
     fetchBudgetForMonth(budgetMonth);
   }, [budgetMonth, fetchBudgetForMonth]);
 
+  const today = new Date();
   const endOfFromMonth = fromDate
     ? new Date(fromDate.getFullYear(), fromDate.getMonth() + 1, 0)
-    : new Date();
+    : today;
+  // "To" picker must never allow future dates — cap at today even when fromDate's month extends past today
+  const maxToDate = endOfFromMonth < today ? endOfFromMonth : today;
   const [catFilter, setCatFilter] = useState<ExpenseCategory | null>(null);
   const [showBudget, setShowBudget] = useState(false);
 
@@ -421,9 +424,9 @@ export default function ExpenseScreen() {
           <IOSPickerModal
             visible={showToPicker}
             mode="date"
-            value={toDate ?? new Date()}
+            value={toDate ?? maxToDate}
             minimumDate={fromDate ?? undefined}
-            maximumDate={fromDate ? endOfFromMonth : new Date()}
+            maximumDate={maxToDate}
             onCancel={() => setShowToPicker(false)}
             onDone={(d) => {
               setShowFromPicker(false);
@@ -458,11 +461,11 @@ export default function ExpenseScreen() {
           )}
           {showToPicker && (
             <DateTimePicker
-              value={toDate ?? new Date()}
+              value={toDate ?? maxToDate}
               mode="date"
               display="default"
               minimumDate={fromDate ?? undefined}
-              maximumDate={fromDate ? endOfFromMonth : new Date()}
+              maximumDate={maxToDate}
               onChange={(_, d) => {
                 setShowToPicker(false);
                 if (d) {
