@@ -3,6 +3,14 @@
   "build": {
     "preview": {
       "android": { "buildType": "apk" },
+      "ios": { "simulator": false },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "http://192.168.0.122:3000"
+      }
+    },
+    "production": {
+      "android": { "buildType": "app-bundle" },
+      "ios": { "simulator": false },
       "env": {
         "EXPO_PUBLIC_API_URL": "http://192.168.0.122:3000"
       }
