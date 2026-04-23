@@ -84,8 +84,12 @@ export async function scheduleLocalAlarm(
   if (Platform.OS !== 'android') return;
   try {
     await ensureAlarmChannel();
-    // Clear any dismissed-alarm guard so a rescheduled alarm (same id) can show again.
-    await AsyncStorage.removeItem('lastDismissedAlarmId').catch(() => {});
+    // Clear the dismissed-alarm guard ONLY for this specific alarm id, so rescheduling
+    // one alarm does not accidentally re-arm stale pendingAlarmPress entries for OTHER alarms.
+    const dismissedId = await AsyncStorage.getItem('lastDismissedAlarmId').catch(() => null);
+    if (dismissedId === id) {
+      await AsyncStorage.removeItem('lastDismissedAlarmId').catch(() => {});
+    }
     await notifee.createTriggerNotification(
       {
         id,
@@ -106,7 +110,7 @@ export async function scheduleLocalAlarm(
           },
           pressAction: { id: 'default', launchActivity: 'default' },
         },
-        data: { alarmTitle: title, alarmType: type, alarmId: id },
+        data: { alarmTitle: title, alarmType: type, alarmId: id, alarmAt: alarmAt.getTime().toString() },
       },
       {
         type: TriggerType.TIMESTAMP,
@@ -127,7 +131,7 @@ export async function scheduleLocalAlarm(
  */
 export async function cancelLocalAlarm(id: string): Promise<void> {
   if (Platform.OS !== 'android') return;
-  
+
   try {
     await notifee.cancelTriggerNotification(id);
     console.log('❌ Cancelling alarm from the alarm manager:', id);
@@ -139,22 +143,36 @@ export async function cancelLocalAlarm(id: string): Promise<void> {
 }
 
 /**
+ * Cancel ALL pending local alarms.
+ * Call when the user disables alarms globally in settings.
+ */
+export async function cancelAllLocalAlarms(): Promise<void> {
+  if (Platform.OS !== 'android') return;
+  try {
+    await notifee.cancelAllNotifications();
+    console.log('❌ All local alarms cancelled');
+  } catch (err) {
+    console.error('[AlarmManager] cancelAllLocalAlarms failed:', err);
+  }
+}
+
+/**
  * Register notifee foreground event handler.
  * Call once at app startup (_layout.tsx).
  * Returns unsubscribe function.
  */
 export function registerNotifeeHandler(
-  onAlarm: (title: string, type: string, alarmId: string) => void
+  onAlarm: (title: string, type: string, alarmId: string, alarmAt: string) => void
 ): () => void {
   if (Platform.OS !== 'android') return () => {};
   console.log('FRONETND ALARM PAGE REGISTERED');
   return notifee.onForegroundEvent(({ type, detail }) => {
     if (type === EventType.DELIVERED || type === EventType.PRESS) {
       const data = detail.notification?.data as
-        | { alarmTitle?: string; alarmType?: string; alarmId?: string }
+        | { alarmTitle?: string; alarmType?: string; alarmId?: string; alarmAt?: string }
         | undefined;
       if (data?.alarmTitle) {
-        onAlarm(data.alarmTitle, data.alarmType ?? 'task', data.alarmId ?? '');
+        onAlarm(data.alarmTitle, data.alarmType ?? 'task', data.alarmId ?? '', data.alarmAt ?? '');
       }
     }
   });
@@ -239,11 +257,15 @@ export async function checkAndPromptOverlayPermission(): Promise<void> {
  */
 export async function checkAllAlarmPermissions(): Promise<void> {
   if (Platform.OS !== 'android') return;
-  // Each step awaits user action (tap) before the next prompt appears.
-  // 1. Full screen intent — auto-opens alarm screen when screen is OFF / locked
+  // Only ask once — first time user sets an alarm (task, event, or settings toggle).
+  // Flag is written BEFORE showing modals so "Later" also permanently counts as asked.
+  // After this, no alarm permission modals will ever auto-appear again.
+  try {
+    const alreadyAsked = await AsyncStorage.getItem('alarmPermissionsAsked');
+    if (alreadyAsked) return;
+    await AsyncStorage.setItem('alarmPermissionsAsked', 'true');
+  } catch { /* proceed if storage unavailable */ }
   await checkAndPromptFullScreenIntent();
-  // 2. Battery optimization — prevents Samsung/OEM from killing the alarm process
   await checkAlarmSystemPermissions();
-  // 3. Display over other apps — allows alarm screen to launch when screen is ON and another app is open
-  await checkAndPromptOverlayPermission();  
+  await checkAndPromptOverlayPermission();
 }

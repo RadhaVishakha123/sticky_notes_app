@@ -94,6 +94,7 @@ export interface Todo {
   priority: TodoPriority;
   dueDate: string | null;
   dueTime: string | null;
+  startAt: string | null;
   reminderAt: string | null;
   alarmAt: string | null;
   userId: string;
@@ -197,6 +198,19 @@ export interface UpdateExpenseRequest {
   amount?: number;
   category?: string;
   date?: string;
+}
+
+// ── App Settings (synced across devices) ──
+export interface AppSettings {
+  alarmsEnabled:         boolean;
+  taskReminderEnabled:   boolean;
+  taskReminderTime:      string;  // "HH:MM" offset before due
+  eventReminderEnabled:  boolean;
+  eventReminderTime:     string;  // "HH:MM" offset before start
+  expenseSummaryEnabled: boolean;
+  expenseSummaryTime:    string;  // "HH:MM" UTC clock time
+  budget80AlertEnabled:  boolean;
+  budget100AlertEnabled: boolean;
 }
 
 // ── API response wrappers ─────────────────

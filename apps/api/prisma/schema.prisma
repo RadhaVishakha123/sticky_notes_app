@@ -26,7 +26,7 @@ model User {
   resetTokens   PasswordResetToken[]
   refreshTokens RefreshToken[]
   deviceTokens     DeviceToken[]
-  expenseSettings  UserExpenseSettings?
+  appSettings      UserAppSettings?
   createdAt        DateTime             @default(now())
   updatedAt        DateTime             @updatedAt
 
@@ -140,16 +140,27 @@ model Budget {
   @@map("budgets")
 }
 
-model UserExpenseSettings {
+
+model UserAppSettings {
   id                    String   @id @default(cuid())
   userId                String   @unique
-  summaryEnabled        Boolean  @default(false)
-  summaryTime           String   @default("20:00") // "HH:MM" UTC
+  // Alarm
+  alarmsEnabled         Boolean  @default(true)
+  // Task reminder — "HH:MM" offset before due time
+  taskReminderEnabled   Boolean  @default(true)
+  taskReminderTime      String   @default("00:30")
+  // Event reminder — "HH:MM" offset before start
+  eventReminderEnabled  Boolean  @default(true)
+  eventReminderTime     String   @default("00:30")
+  // Expense notifications
+  expenseSummaryEnabled Boolean  @default(false)
+  expenseSummaryTime    String   @default("20:00")  // "HH:MM" UTC
   budget80AlertEnabled  Boolean  @default(true)
   budget100AlertEnabled Boolean  @default(true)
   user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  updatedAt             DateTime @updatedAt
 
-  @@map("user_expense_settings")
+  @@map("user_app_settings")
 }
 
 enum TodoStatus {

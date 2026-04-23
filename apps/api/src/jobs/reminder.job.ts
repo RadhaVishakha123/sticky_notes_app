@@ -108,7 +108,7 @@ async function checkTodoAlarms(from: Date, to: Date): Promise<void> {
       const tokens = todo.user.deviceTokens.map((d) => d.token);
       if (tokens.length > 0) {
         console.log("alarm sent to:", tokens);
-        await sendAlarmNotification(tokens, todo.id, todo.title, 'task');
+        await sendAlarmNotification(tokens, todo.id, todo.title, 'task', todo.alarmAt!.toISOString());
       }
       await prisma.todo.update({
         where: { id: todo.id },
@@ -133,7 +133,7 @@ async function checkEventAlarms(from: Date, to: Date): Promise<void> {
     for (const event of events) {
       const tokens = event.user.deviceTokens.map((d) => d.token);
       if (tokens.length > 0) {
-        await sendAlarmNotification(tokens, event.id, event.title, 'event');
+        await sendAlarmNotification(tokens, event.id, event.title, 'event', event.alarmAt!.toISOString());
       }
       await prisma.event.update({
         where: { id: event.id },
@@ -214,8 +214,8 @@ async function checkDailyExpenseSummary(now: Date): Promise<void> {
     const currentTime = `${utcHH}:${utcMM}`;
 
     // Find all users whose summary is enabled and time matches current UTC minute
-    const settingsList = await prisma.userExpenseSettings.findMany({
-      where: { summaryEnabled: true, summaryTime: currentTime },
+    const settingsList = await prisma.userAppSettings.findMany({
+      where: { expenseSummaryEnabled: true, expenseSummaryTime: currentTime },
       include: { user: { include: { deviceTokens: true } } },
     });
 

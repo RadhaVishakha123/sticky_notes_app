@@ -21,6 +21,7 @@ import type {
   UpdateEventRequest,
   Expense,
   CreateExpenseRequest,
+  AppSettings,
   ApiResponse,
 } from '@repo/types';
 
@@ -152,6 +153,14 @@ export const expenseSettingsApi = {
     api.get<ApiResponse<ExpenseSettings>>('/expenses/settings').then((r) => r.data.data),
   update: (data: Partial<ExpenseSettings>) =>
     api.put<ApiResponse<ExpenseSettings>>('/expenses/settings', data).then((r) => r.data.data),
+};
+
+// ─── App Settings API (cross-device sync) ────────────────────
+export const appSettingsApi = {
+  get: () =>
+    api.get<ApiResponse<AppSettings>>('/app-settings').then((r) => r.data.data),
+  save: (data: AppSettings) =>
+    api.put<ApiResponse<AppSettings>>('/app-settings', data).then((r) => r.data.data),
 };
 
 // ─── Push Notifications API ──────────────────────────────────

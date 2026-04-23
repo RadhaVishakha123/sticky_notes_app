@@ -14,6 +14,7 @@ function mapTodo(t: {
   id: string; title: string; description: string | null;
   completed: boolean; status: string; priority: string;
   dueDate: Date | null; dueTime: string | null;
+  startAt: Date | null;
   reminderAt: Date | null; alarmAt: Date | null;
   userId: string; createdAt: Date; updatedAt: Date;
 }): Todo {
@@ -26,6 +27,7 @@ function mapTodo(t: {
     priority: t.priority as Todo['priority'],
     dueDate: t.dueDate ? t.dueDate.toISOString() : null,
     dueTime: t.dueTime ?? null,
+    startAt: t.startAt ? t.startAt.toISOString() : null,
     reminderAt: t.reminderAt ? t.reminderAt.toISOString() : null,
     alarmAt: t.alarmAt ? t.alarmAt.toISOString() : null,
     userId: t.userId,

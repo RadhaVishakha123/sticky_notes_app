@@ -34,12 +34,16 @@ async function stopAllAlarmAudio() {
 }
 const AUTO_DISMISS_MS = 2 * 60 * 1000; // 2 minutes
 
+const MISSED_THRESHOLD_MS = 2 * 60 * 1000; // 5 minutes
+
 export default function AlarmScreen() {
   console.log('AlarmScreen opened');
   const router = useRouter();
-  const { title = 'Reminder', type = 'task', fromBackground = 'false', alarmId = '' } = useLocalSearchParams<{ title?: string; type?: string; fromBackground?: string; alarmId?: string }>();
+  const { title = 'Reminder', type = 'task', fromBackground = 'false', alarmId = '', alarmAt = '' } = useLocalSearchParams<{ title?: string; type?: string; fromBackground?: string; alarmId?: string; alarmAt?: string }>();
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dismissedRef = useRef(false);
+
+  const isMissed = alarmAt ? (Date.now() - Number(alarmAt)) > MISSED_THRESHOLD_MS : false;
 
   // ── Bell shake animation ──────────────────────────────────────
   const shakeAnim  = useRef(new Animated.Value(0)).current;
@@ -47,6 +51,7 @@ export default function AlarmScreen() {
   const pulseAnim  = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
+    if (isMissed) return; // no animation for missed alarms
     // Shake: left-right ring
     Animated.loop(
       Animated.sequence([
@@ -75,7 +80,7 @@ export default function AlarmScreen() {
         Animated.timing(pulseAnim, { toValue: 1,   duration: 900, useNativeDriver: true }),
       ]),
     ).start();
-  }, []);
+  }, [isMissed]);
 
   // ── Sound ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -96,10 +101,18 @@ export default function AlarmScreen() {
         // eslint-disable-next-line @typescript-eslint/no-var-requires
         const player = createAudioPlayer(require('../assets/sounds/alarm.wav') as number);
         if (!mounted || dismissedRef.current) { player.remove(); return; }
-        player.loop = true;
-        player.volume = 1.0;
-        player.play();
-        _alarmPlayer = player;
+        if (isMissed) {
+          // Play once briefly then stop — alarm time already passed
+          player.loop = false;
+          player.volume = 0.5;
+          player.play();
+          setTimeout(() => { try { player.pause(); player.remove(); } catch { /* ignore */ } }, 2000);
+        } else {
+          player.loop = true;
+          player.volume = 1.0;
+          player.play();
+          _alarmPlayer = player;
+        }
       } catch {
         // sound failed — alarm screen still shows
       }
@@ -107,8 +120,10 @@ export default function AlarmScreen() {
 
     playSound();
 
-    // Auto-dismiss after 2 minutes
-    timerRef.current = setTimeout(() => { if (mounted) dismiss(); }, AUTO_DISMISS_MS);
+    // Auto-dismiss after 2 minutes (active alarms only — missed alarms stay until user acts)
+    if (!isMissed) {
+      timerRef.current = setTimeout(() => { if (mounted) dismiss(); }, AUTO_DISMISS_MS);
+    }
 
     return () => {
       mounted = false;
@@ -116,7 +131,9 @@ export default function AlarmScreen() {
       stopAllAlarmAudio();
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, []);
+  // dismiss and router are stable references; isMissed is derived from params and never changes
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMissed]);
 
   async function dismiss() {
     if (dismissedRef.current) return; // prevent double-tap
@@ -129,8 +146,9 @@ export default function AlarmScreen() {
     // onBackgroundEvent (index.js) may finish writing pendingAlarm AFTER this dismiss runs
     // (race condition). appStateSub checks lastDismissedAlarmId to skip re-showing it.
     if (alarmId) await AsyncStorage.setItem('lastDismissedAlarmId', alarmId).catch(() => {});
-    // Clear AsyncStorage so appStateSub does not re-open alarm on next foreground
+    // Clear both AsyncStorage keys so appStateSub does not re-open alarm on next foreground
     await AsyncStorage.removeItem('pendingAlarm').catch(() => {});
+    await AsyncStorage.removeItem('pendingAlarmPress').catch(() => {});
     await notifee.cancelDisplayedNotifications().catch(() => {});
     try {
       const isLocked: boolean = await NativeModules.OverlayPermission.isDeviceLocked();
@@ -150,16 +168,59 @@ export default function AlarmScreen() {
 
   const isEvent = type === 'event';
   const accentColor = isEvent ? '#8B5CF6' : '#E11D48';
-  const iconName: React.ComponentProps<typeof Ionicons>['name'] = isEvent ? 'alarm' : 'alarm';
+  const missedColor = '#475569';
 
-  // Countdown display
+  const missedTimeLabel = alarmAt
+    ? new Date(Number(alarmAt)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    : '';
+
+  const handleGoToItem = () => {
+    dismiss();
+    if (type === 'event') router.replace(`/event-editor?id=${alarmId}` as never);
+    else router.replace(`/task-editor?id=${alarmId}` as never);
+  };
+
+  // Countdown display (active alarms only)
   const [remaining, setRemaining] = useState(AUTO_DISMISS_MS / 1000);
   useEffect(() => {
+    if (isMissed) return;
     const iv = setInterval(() => setRemaining((r) => Math.max(0, r - 1)), 1000);
     return () => clearInterval(iv);
-  }, []);
+  }, [isMissed]);
   const mins = Math.floor(remaining / 60);
   const secs = String(remaining % 60).padStart(2, '0');
+
+  if (isMissed) {
+    return (
+      <SafeAreaView style={[s.safe, { backgroundColor: '#0F172A' }]}>
+        <View style={s.content}>
+          <View style={[s.iconWrap, { backgroundColor: missedColor + '30' }]}>
+            <View style={[s.iconInner, { backgroundColor: missedColor }]}>
+              <Ionicons name="alarm-outline" size={52} color="#fff" />
+            </View>
+          </View>
+          <Text style={[s.alarmLabel, { color: '#64748B' }]}>Missed Alarm</Text>
+          <Text style={s.titleText} numberOfLines={3}>{title}</Text>
+          <Text style={s.subText}>
+            {isEvent ? 'Event was due' : 'Task was due'}{missedTimeLabel ? ` at ${missedTimeLabel}` : ''}
+          </Text>
+        </View>
+
+        <View style={s.missedButtons}>
+          {alarmId ? (
+            <TouchableOpacity style={[s.missedBtn, { backgroundColor: accentColor }]} onPress={handleGoToItem} activeOpacity={0.85}>
+              <Ionicons name="open-outline" size={20} color="#fff" />
+              <Text style={s.dismissText}>View {isEvent ? 'Event' : 'Task'}</Text>
+            </TouchableOpacity>
+          ) : null}
+          <TouchableOpacity style={[s.missedBtn, { backgroundColor: missedColor }]} onPress={dismiss} activeOpacity={0.85}>
+            <Ionicons name="close-circle-outline" size={20} color="#fff" />
+            <Text style={s.dismissText}>Dismiss</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[s.safe, { backgroundColor: isEvent ? '#1E1035' : '#1A0010' }]}>
@@ -171,7 +232,7 @@ export default function AlarmScreen() {
         {/* Animated alarm icon */}
         <Animated.View style={[s.iconWrap, { backgroundColor: accentColor + '20', transform: [{ rotate }, { scale: scaleAnim }] }]}>
           <View style={[s.iconInner, { backgroundColor: accentColor }]}>
-            <Ionicons name={iconName} size={52} color="#fff" />
+            <Ionicons name="alarm" size={52} color="#fff" />
           </View>
         </Animated.View>
 
@@ -264,4 +325,17 @@ const s = StyleSheet.create({
     shadowOpacity: 0.3, shadowRadius: 8, elevation: 6,
   },
   dismissText: { fontSize: 17, fontWeight: '800', color: '#fff' },
+  missedBtn: {
+    flex: 1,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    paddingVertical: 16, paddingHorizontal: 10,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3, shadowRadius: 8, elevation: 6,
+  },
+  missedButtons: {
+    flexDirection: 'row', gap: 12,
+    marginHorizontal: 32, marginBottom: 8,
+  },
 });

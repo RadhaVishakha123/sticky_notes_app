@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useFocusEffect } from 'expo-router';
 import {
   View,
   Text,
@@ -216,9 +217,11 @@ export default function ExpenseScreen() {
   const { expenses, fetchExpenses, deleteExpense } = useExpenseStore();
   const { getBudgetForMonth, fetchBudgetForMonth } = useBudgetStore();
 
-  useEffect(() => {
-    fetchExpenses();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchExpenses();
+    }, [fetchExpenses]),
+  );
 
   const currentMonth = new Date().toISOString().slice(0, 7);
 
@@ -597,7 +600,7 @@ export default function ExpenseScreen() {
 // ─── Styles ───────────────────────────────────────────────────
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: 'transparent' },
+  root: { flex: 1, backgroundColor: 'transparent',marginBottom:4 },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',

@@ -1174,7 +1174,7 @@ export default function NoteEditorScreen() {
         </ScrollView>
 
         {/* Toolbar */}
-        <View style={s.toolbarWrap}>
+        <View style={[s.toolbarWrap, { bottom: insets.bottom + 2 }]}>
           {/* Auto-detect toggle pill */}
           <TouchableOpacity
             activeOpacity={0.85}
@@ -1328,7 +1328,7 @@ const s = StyleSheet.create({
 
   toolbarWrap: {
     position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 32 : 20,
+    bottom: 0,
     left: 20,
     right: 20,
     alignItems: 'center',

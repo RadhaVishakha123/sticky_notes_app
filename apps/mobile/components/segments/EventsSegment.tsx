@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import {
-  View, Text, FlatList, TouchableOpacity, ActivityIndicator,
+  View, Text, FlatList, ScrollView, TouchableOpacity, ActivityIndicator,
   Modal, Share, StyleSheet, Platform,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -14,6 +14,7 @@ import { COLORS } from '../../constants/colors';
 import { useThemeColors } from '../../store/themeStore';
 import { formatDateRange } from '../../utils/dateUtils';
 import { seg } from './segStyles';
+import { useNotificationsStore } from '@/store/notificationsStore';
 
 function getEventStatus(start: string, end: string, now: Date) {
   const s = new Date(start).getTime();
@@ -36,8 +37,11 @@ function getEventStatus(start: string, end: string, now: Date) {
     else                     chip = `in ${diffDays} days`;
     return { state: 'future' as const, chip, chipColor: '#3B82F6', progress: 0 };
   }
-  const pastMs = n - e;
-  const pastDays = Math.floor(pastMs / 86400000);
+  // Compare calendar dates (midnight-normalized) so an event ending at 11 PM yesterday
+  // shows "Yesterday", not "Ended today" (which raw ms math would produce if <24h ago).
+  const endDay = new Date(e); endDay.setHours(0, 0, 0, 0);
+  const nowDay = new Date(n); nowDay.setHours(0, 0, 0, 0);
+  const pastDays = Math.round((nowDay.getTime() - endDay.getTime()) / 86400000);
   const chip = pastDays === 0 ? 'Ended today' : pastDays === 1 ? 'Yesterday' : `${pastDays} days ago`;
   return { state: 'past' as const, chip, chipColor: '#94A3B8', progress: 0 };
 }
@@ -66,6 +70,7 @@ export function EventsSegment({ search }: { search: string }) {
   const [dateTo,          setDateTo]          = useState<Date | null>(null);
   const [showFromPicker,  setShowFromPicker]  = useState(false);
   const [showToPicker,    setShowToPicker]    = useState(false);
+   const { alarmsEnabled } = useNotificationsStore();
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 60_000);
@@ -238,7 +243,11 @@ export function EventsSegment({ search }: { search: string }) {
       </Modal>
 
       {filtered.length === 0
-        ? <EmptyState message={search || catFilter || dateFrom || dateTo ? 'No matching events' : 'No events yet'} variant="events" />
+        ? (
+          <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
+            <EmptyState message={search || catFilter || dateFrom || dateTo ? 'No matching events' : 'No events yet'} variant="events" />
+          </ScrollView>
+        )
         : (
           <FlatList
             data={filtered}
@@ -259,7 +268,7 @@ export function EventsSegment({ search }: { search: string }) {
                         <Ionicons name="time-outline" size={12} color="#94A3B8" />
                         <Text style={seg.eventCardDate}>{formatDateRange(item.startDate, item.endDate)}</Text>
                       </View>
-                      {item.alarmAt && new Date(item.alarmAt) > now ? (
+                      {item.alarmAt && alarmsEnabled  && new Date(item.alarmAt) > now ? (
                         <View style={seg.eventCardDateRow}>
                           <Ionicons name="alarm-outline" size={12} color="#2b89ed" />
                           <Text style={[seg.eventCardDate, { color: '#2b89ed' }]}>

@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { useAppAlert } from '../../components/AppAlert';
 import {
   View, Text, TouchableOpacity, StyleSheet,
   ActivityIndicator, ScrollView, Switch, Linking,
-  NativeModules, Platform, AppState,
+  Platform,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,7 +11,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useThemeStore, useThemeColors } from '../../store/themeStore';
 import { useNotificationsStore } from '../../store/notificationsStore';
 import { requestAlarmPermission } from '../../utils/notifications';
-import { checkAlarmSystemPermissions, checkAndPromptFullScreenIntent } from '../../utils/alarmManager';
+import { checkAllAlarmPermissions, cancelAllLocalAlarms } from '../../utils/alarmManager';
 import { AUTH_COLORS, COLORS } from '../../constants/colors';
 import { GradientScreen } from '@/components/GradientScreen';
 
@@ -53,63 +53,23 @@ function SettingRow({
 export default function SettingsScreen() {
   const { user, logout }        = useAuthStore();
   const { themeMode, setThemeMode } = useThemeStore();
-  const { alarmsEnabled, setAlarmsEnabled, notificationsEnabled } = useNotificationsStore();
+  const {
+    alarmsEnabled, setAlarmsEnabled, notificationsEnabled,
+    settingsSyncEnabled, setSettingsSyncEnabled,
+  } = useNotificationsStore();
   const c = useThemeColors();
   const { showAlert, AlertModal } = useAppAlert();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  // Tracks whether the user tapped the toggle while permission was missing.
-  // When the app returns to foreground (after visiting system settings) we re-check
-  // and enable the toggle only if the permission was actually granted.
-  const pendingAlarmEnable = useRef(false);
-
-  useEffect(() => {
-    if (Platform.OS !== 'android') return;
-    const sub = AppState.addEventListener('change', async (nextState) => {
-      if (nextState !== 'active' || !pendingAlarmEnable.current) return;
-      try {
-        const granted: boolean = await NativeModules.OverlayPermission.canUseFullScreenIntent();
-        if (granted) {
-          pendingAlarmEnable.current = false;
-          setAlarmsEnabled(true);
-          requestAlarmPermission();
-          await checkAlarmSystemPermissions();
-        }
-      } catch { /* non-critical — permission API unavailable */ }
-    });
-    return () => sub.remove();
-  }, [setAlarmsEnabled]);
-
   const handleToggleAlarms = async (v: boolean) => {
     if (!v) {
       setAlarmsEnabled(false);
-      pendingAlarmEnable.current = false;
+      await cancelAllLocalAlarms();
       return;
     }
-
-    // On Android, only enable the toggle once Full Screen Intent is granted.
-    if (Platform.OS === 'android') {
-      try {
-        const granted: boolean = await NativeModules.OverlayPermission.canUseFullScreenIntent();
-        if (!granted) {
-          // Show the permission modal but keep the toggle OFF.
-          // The AppState listener above will enable it when the user returns
-          // from system settings with the permission granted.
-          pendingAlarmEnable.current = true;
-          await checkAndPromptFullScreenIntent();
-          // If the user denied / tapped Later without going to settings, clear the flag.
-          const nowGranted: boolean = await NativeModules.OverlayPermission.canUseFullScreenIntent();
-          if (!nowGranted) {
-            pendingAlarmEnable.current = false;
-          }
-          return;
-        }
-      } catch { /* non-critical — permission API unavailable, fall through to enable */ }
-    }
-
     setAlarmsEnabled(true);
     requestAlarmPermission();
-    await checkAlarmSystemPermissions();
+    await checkAllAlarmPermissions();
   };
 
   const avatarLetter = (user?.name ?? user?.email ?? '?')[0].toUpperCase();
@@ -139,7 +99,7 @@ export default function SettingsScreen() {
 
   return (
     <GradientScreen style={s.root}>
-      <ScrollView  showsVerticalScrollIndicator={false}>
+      <ScrollView style={s.scrollcontainer}  showsVerticalScrollIndicator={false}>
 
         {/* Profile card */}
         <View style={s.profileCard}>
@@ -231,6 +191,31 @@ export default function SettingsScreen() {
           )}
         </View>
 
+        {/* SYNC */}
+        <Text style={[s.sectionHeader, { color: c.textMuted }]}>Sync</Text>
+        <View style={[s.section, { backgroundColor: c.surface }]}>
+          <SettingRow
+            icon="sync-outline"
+            iconBg="#F0F9FF"
+            iconColor="#0EA5E9"
+            label="Sync Settings"
+            sublabel={
+              settingsSyncEnabled
+                ? 'Settings are shared across all your devices'
+                : 'Each device has its own independent settings'
+            }
+            c={c}
+            right={
+              <Switch
+                value={settingsSyncEnabled}
+                onValueChange={setSettingsSyncEnabled}
+                trackColor={{ false: c.border, true: '#0EA5E9' }}
+                thumbColor="#fff"
+              />
+            }
+          />
+        </View>
+
         {/* LOG OUT */}
         <Text style={[s.sectionHeader, { color: c.textMuted }]}>Session</Text>
         <View style={[s.section, { backgroundColor: c.surface }]}>
@@ -264,6 +249,7 @@ export default function SettingsScreen() {
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: 'transparent' },
+  scrollcontainer: { marginBottom: 4 },
   profileCard: {
     alignItems: 'center',
     paddingTop: 32, paddingBottom: 28, paddingHorizontal: 32,
